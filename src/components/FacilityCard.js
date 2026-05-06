@@ -79,6 +79,12 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   };
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
+  // Temporary: log the first facility's keys so we can verify field names
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[FacilityCard] facility keys:', Object.keys(facility));
+    console.log('[FacilityCard] facility sample:', facility);
+  }
+
   const ACTIVE_CODES = new Set(['TAC', 'TTC']);
   const uniqueTankCount = new Set(
     tanks
