@@ -96,12 +96,6 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
     setStatus(null);
     try {
       const rows = await parseSheet(file, selectedSheet);
-      if (rows.length > 0) {
-        console.log('[DataUpload] parsed row[0] keys: ' + Object.keys(rows[0]).join(', '));
-        console.log('[DataUpload] MAILING_ADDRESS_CITY=' + rows[0].MAILING_ADDRESS_CITY
-          + ' | MAILING_ADDRESS_STATE=' + rows[0].MAILING_ADDRESS_STATE
-          + ' | MAILING_ADDRESS_ZIP=' + rows[0].MAILING_ADDRESS_ZIP);
-      }
       if (dataType === 'tank') {
         const facs = new Set(rows.map((r) => r.AI_ID)).size;
         setStatus({ type: 'success', message: config.successMsg(rows.length, facs) });
