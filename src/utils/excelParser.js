@@ -26,7 +26,12 @@ export const parseSheet = (file, sheetName) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        resolve(XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]));
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        if (rows.length > 0) {
+          console.log('[excelParser] row[0] keys: ' + Object.keys(rows[0]).join(', '));
+          console.log('[excelParser] row[0] full: ', rows[0]);
+        }
+        resolve(rows);
       } catch (err) {
         reject(err);
       }
