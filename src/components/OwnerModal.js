@@ -8,7 +8,7 @@ const OwnerModal = ({ owner, ownerName, onClose }) => (
       {owner ? (
         <>
           <div className="modal-field"><strong>Name</strong>{owner.OWNER_NAME || 'N/A'}</div>
-          <div className="modal-field"><strong>Address</strong>{owner.OWNER_ADDR1 || 'N/A'}</div>
+          <div className="modal-field"><strong>Address</strong>{owner.OWNER_ADDR1 || owner.OWNER_ADDRESS || 'N/A'}</div>
           <div className="modal-field"><strong>City</strong>{owner.OWNER_CITY || 'N/A'}</div>
           <div className="modal-field"><strong>State</strong>{owner.OWNER_STATE || 'N/A'}</div>
           <div className="modal-field"><strong>ZIP</strong>{owner.OWNER_ZIP || 'N/A'}</div>
