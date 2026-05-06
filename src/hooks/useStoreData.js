@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import localforage from 'localforage';
+import { haversineMiles } from '../utils/geoDistance';
 
 // IndexedDB store — no quota issues for large datasets
 const store = localforage.createInstance({ name: 'sea-store-info' });
@@ -99,6 +100,23 @@ export const useStoreData = () => {
     return new Set(tankData.map((r) => r.AI_ID)).size;
   }, [tankData]);
 
+  // Returns up to `count` nearest facilities sorted by distance, each with distanceMiles
+  const findNearest = useCallback((userLat, userLng, count = 5) => {
+    return groupByFacility(tankData)
+      .map(({ facility, tanks }) => {
+        const lat = parseFloat(facility.LATITUDE);
+        const lng = parseFloat(facility.LONGITUDE);
+        const distanceMiles =
+          !isNaN(lat) && !isNaN(lng)
+            ? haversineMiles(userLat, userLng, lat, lng)
+            : null;
+        return { facility, tanks, distanceMiles };
+      })
+      .filter(({ distanceMiles }) => distanceMiles !== null)
+      .sort((a, b) => a.distanceMiles - b.distanceMiles)
+      .slice(0, count);
+  }, [tankData, groupByFacility]);
+
   return {
     isInitializing,
     isLoaded,
@@ -106,6 +124,7 @@ export const useStoreData = () => {
     tankData,
     saveData,
     search,
+    findNearest,
     getUniqueValues,
     findOwner,
     facilityCount,

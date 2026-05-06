@@ -22,7 +22,7 @@ const formatDate = (iso) => {
 const App = () => {
   const {
     isInitializing, isLoaded, uploadedAt, saveData,
-    search, getUniqueValues, findOwner,
+    search, findNearest, getUniqueValues, findOwner,
     facilityCount, tankCount,
   } = useStoreData();
 
@@ -31,6 +31,10 @@ const App = () => {
 
   const handleSearch = (category, term) => {
     setResults(search(category, term));
+  };
+
+  const handleLocateMe = (lat, lng) => {
+    setResults(findNearest(lat, lng, 5));
   };
 
   const handleDataLoaded = (parsed) => {
@@ -95,7 +99,11 @@ const App = () => {
         </div>
 
         {/* Search panel */}
-        <SearchBar onSearch={handleSearch} getUniqueValues={getUniqueValues} />
+        <SearchBar
+          onSearch={handleSearch}
+          onLocateMe={handleLocateMe}
+          getUniqueValues={getUniqueValues}
+        />
 
         {/* Results */}
         {results === null ? (
@@ -109,14 +117,17 @@ const App = () => {
         ) : (
           <>
             <p className="results-count">
-              {results.length} {results.length === 1 ? 'facility' : 'facilities'} found
+              {results[0]?.distanceMiles != null
+                ? `${results.length} nearest ${results.length === 1 ? 'facility' : 'facilities'} to your location`
+                : `${results.length} ${results.length === 1 ? 'facility' : 'facilities'} found`}
             </p>
-            {results.map(({ facility, tanks }) => (
+            {results.map(({ facility, tanks, distanceMiles }) => (
               <FacilityCard
                 key={facility.AI_ID}
                 facility={facility}
                 tanks={tanks}
                 findOwner={findOwner}
+                distanceMiles={distanceMiles ?? null}
               />
             ))}
           </>

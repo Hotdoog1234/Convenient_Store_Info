@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import OwnerModal from './OwnerModal';
+import { formatMiles } from '../utils/geoDistance';
 
 const TANK_FIELDS = [
   'SUBJECT_ITEM_ID',
@@ -27,7 +28,7 @@ const TANK_FIELDS = [
 
 const label = (field) => field.replace(/_/g, ' ');
 
-const FacilityCard = ({ facility, tanks, findOwner }) => {
+const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   const [modalOwnerName, setModalOwnerName] = useState(null);
 
   const openMaps = () => {
@@ -58,6 +59,9 @@ const FacilityCard = ({ facility, tanks, findOwner }) => {
         <div className="facility-meta">
           {facility.COUNTY && (
             <span className="county-badge">{facility.COUNTY}</span>
+          )}
+          {distanceMiles != null && (
+            <span className="distance-badge">📍 {formatMiles(distanceMiles)}</span>
           )}
           <button className="btn-outline" onClick={openMaps}>
             View on Google Maps

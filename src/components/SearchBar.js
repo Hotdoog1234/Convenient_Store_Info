@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getCurrentPosition } from '../utils/geoDistance';
 
 const CATEGORIES = [
   { value: 'AI_NAME',    label: 'AI Name',  type: 'text' },
@@ -8,10 +9,18 @@ const CATEGORIES = [
   { value: 'OWNER_NAME', label: 'Owner',    type: 'dropdown' },
 ];
 
-const SearchBar = ({ onSearch, getUniqueValues }) => {
-  const [category, setCategory] = useState('');
-  const [term,     setTerm]     = useState('');
-  const [options,  setOptions]  = useState([]);
+const GEO_ERRORS = {
+  1: 'Location access was denied. Please allow location in your browser settings.',
+  2: 'Your location could not be determined.',
+  3: 'Location request timed out.',
+};
+
+const SearchBar = ({ onSearch, onLocateMe, getUniqueValues }) => {
+  const [category,   setCategory]   = useState('');
+  const [term,       setTerm]       = useState('');
+  const [options,    setOptions]    = useState([]);
+  const [geoStatus,  setGeoStatus]  = useState('idle'); // 'idle' | 'loading' | 'error'
+  const [geoError,   setGeoError]   = useState('');
 
   const selected = CATEGORIES.find((c) => c.value === category);
 
@@ -33,6 +42,19 @@ const SearchBar = ({ onSearch, getUniqueValues }) => {
     const val = e.target.value;
     setTerm(val);
     if (val) onSearch(category, val);
+  };
+
+  const handleLocate = async () => {
+    setGeoStatus('loading');
+    setGeoError('');
+    try {
+      const pos = await getCurrentPosition();
+      setGeoStatus('idle');
+      onLocateMe(pos.coords.latitude, pos.coords.longitude);
+    } catch (err) {
+      setGeoStatus('error');
+      setGeoError(GEO_ERRORS[err.code] || 'Could not get your location.');
+    }
   };
 
   return (
@@ -76,8 +98,22 @@ const SearchBar = ({ onSearch, getUniqueValues }) => {
               ))}
             </select>
           )}
+
+          <button
+            type="button"
+            className="btn-locate"
+            onClick={handleLocate}
+            disabled={geoStatus === 'loading'}
+            title="Find 5 nearest facilities to my location"
+          >
+            {geoStatus === 'loading' ? '…' : '📍 Locate Me'}
+          </button>
         </div>
       </form>
+
+      {geoStatus === 'error' && (
+        <p className="locate-error">{geoError}</p>
+      )}
     </div>
   );
 };
