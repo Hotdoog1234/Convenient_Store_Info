@@ -70,12 +70,13 @@ const App = () => {
     <div className="app-layout">
       <Header onUpdateData={() => setShowUpload(true)} />
 
-      {/* Update-data overlay */}
+      {/* Update-data overlay — passcode required */}
       {showUpload && (
         <div className="upload-overlay">
           <DataUpload
             onDataLoaded={handleDataLoaded}
             onCancel={() => setShowUpload(false)}
+            requirePasscode
           />
         </div>
       )}
