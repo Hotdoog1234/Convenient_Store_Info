@@ -256,6 +256,35 @@ body {
   border-bottom: 1px solid var(--color-border);
 }
 
+/* ── Facility summary ── */
+.facility-summary {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: #fafaf8;
+}
+
+.facility-summary-item {
+  padding: 14px 24px;
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.facility-summary-item--wide {
+  flex: 1;
+  border-right: none;
+}
+
+.facility-summary-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
 .facility-name {
   font-size: 17px;
   font-weight: 600;

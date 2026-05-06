@@ -26,7 +26,47 @@ const TANK_FIELDS = [
   'LINE_LEAK_DETECT_CODE',
 ];
 
+const STATUS_LABELS = {
+  TAC: 'Active',
+  TCS: 'Change In Service',
+  TCP: 'Closed In Place',
+  TTC: 'Temporarily Closed',
+  TOS: 'Temporarily Out of Service',
+  TRR: 'Removed and Replaced',
+  TRM: 'Removed Tank Verified',
+  TR8: 'Removed Prior to 1988',
+  TER: 'Removed Tank Ereg',
+  TBL: 'Removed Tank Backlog Regs',
+  T96: 'Removed Tank 1996 Regs',
+  TAB: 'Abandoned',
+  TRA: 'Abandoned Tank Newly Discovered',
+  TUR: 'Removed Tank Unverified',
+  TEX: 'Exempt',
+  TNF: 'Not Found',
+  TNV: 'Not Verified',
+  TNR: 'Not Registered',
+  CAR: 'Contract Application Received',
+  DEF: 'Diesel Exhaust Fluid Tank',
+  DUP: 'Duplicate Tank',
+  NFA: 'No Further Action',
+  TPS: 'Pending Sotra',
+};
+
 const label = (field) => field.replace(/_/g, ' ');
+
+const buildStatusSummary = (tanks) => {
+  const counts = {};
+  tanks.forEach((tank) => {
+    const code = tank.TANK_STATUS_CODE?.trim();
+    if (!code) return;
+    const name = STATUS_LABELS[code] || code;
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1]) // most common first
+    .map(([name, n]) => `${n} ${name}`)
+    .join(', ');
+};
 
 const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   const [modalOwnerName, setModalOwnerName] = useState(null);
@@ -42,6 +82,8 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   };
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
+  const uniqueTankCount = new Set(tanks.map((t) => t.SUBJECT_ITEM_ID).filter(Boolean)).size || tanks.length;
+  const statusSummary   = buildStatusSummary(tanks);
 
   return (
     <div className="card facility-card">
@@ -66,6 +108,18 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
           <button className="btn-outline" onClick={openMaps}>
             View on Google Maps
           </button>
+        </div>
+      </div>
+
+      {/* ── Summary section ── */}
+      <div className="facility-summary">
+        <div className="facility-summary-item">
+          <span className="section-label">Number of Tanks</span>
+          <span className="facility-summary-value">{uniqueTankCount}</span>
+        </div>
+        <div className="facility-summary-item facility-summary-item--wide">
+          <span className="section-label">Tank Status Summary</span>
+          <span className="facility-summary-value">{statusSummary || '—'}</span>
         </div>
       </div>
 
