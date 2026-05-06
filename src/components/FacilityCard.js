@@ -79,19 +79,6 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   };
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
-  // Temporary: log the first facility's keys so we can verify field names
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[FacilityCard] keys: ' + Object.keys(facility).join(', '));
-    console.log('[FacilityCard] address fields → ADDRESS_1=' + facility.ADDRESS_1
-      + ' | CITY=' + facility.MAILING_ADDRESS_CITY
-      + ' | STATE=' + facility.MAILING_ADDRESS_STATE
-      + ' | ZIP=' + facility.MAILING_ADDRESS_ZIP);
-    const addressKeys = Object.keys(facility).filter(k =>
-      k.includes('CITY') || k.includes('STATE') || k.includes('ZIP') || k.includes('ADDR')
-    );
-    console.log('[FacilityCard] address-related keys: ' + addressKeys.join(', '));
-  }
-
   const ACTIVE_CODES = new Set(['TAC', 'TTC']);
   const uniqueTankCount = new Set(
     tanks
@@ -107,12 +94,7 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
         <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
         <div className="facility-id">AI ID: {facility.AI_ID}</div>
         <div className="facility-address">
-          {[
-            facility.ADDRESS_1,
-            facility.MAILING_ADDRESS_CITY,
-            [facility.MAILING_ADDRESS_STATE, facility.MAILING_ADDRESS_ZIP]
-              .filter(Boolean).join(' '),
-          ].filter(Boolean).join(', ')}
+          {facility.ADDRESS_1 || 'Address not available'}
         </div>
         <div className="facility-meta">
           {facility.COUNTY && (
