@@ -44,15 +44,20 @@ const App = () => {
   };
 
   // ── Reading from IndexedDB on first render ─────────────────────────────────
+  const footer = (
+    <footer className="app-footer">
+      Shield Environmental Associates, Inc. {new Date().getFullYear()}
+    </footer>
+  );
+
   if (isInitializing) {
     return (
       <div className="app-layout">
         <Header />
         <div className="upload-fullpage">
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>
-            Loading…
-          </div>
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
         </div>
+        {footer}
       </div>
     );
   }
@@ -65,6 +70,7 @@ const App = () => {
         <div className="upload-fullpage">
           <DataUpload onDataLoaded={handleDataLoaded} />
         </div>
+        {footer}
       </div>
     );
   }
@@ -133,6 +139,8 @@ const App = () => {
           </>
         )}
       </main>
+
+      {footer}
     </div>
   );
 };
