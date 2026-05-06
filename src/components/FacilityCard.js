@@ -81,8 +81,15 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
   // Temporary: log the first facility's keys so we can verify field names
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[FacilityCard] facility keys:', Object.keys(facility));
-    console.log('[FacilityCard] facility sample:', facility);
+    console.log('[FacilityCard] keys: ' + Object.keys(facility).join(', '));
+    console.log('[FacilityCard] address fields → ADDRESS_1=' + facility.ADDRESS_1
+      + ' | CITY=' + facility.MAILING_ADDRESS_CITY
+      + ' | STATE=' + facility.MAILING_ADDRESS_STATE
+      + ' | ZIP=' + facility.MAILING_ADDRESS_ZIP);
+    const addressKeys = Object.keys(facility).filter(k =>
+      k.includes('CITY') || k.includes('STATE') || k.includes('ZIP') || k.includes('ADDR')
+    );
+    console.log('[FacilityCard] address-related keys: ' + addressKeys.join(', '));
   }
 
   const ACTIVE_CODES = new Set(['TAC', 'TTC']);
