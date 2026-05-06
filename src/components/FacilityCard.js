@@ -97,8 +97,8 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
           {[
             facility.ADDRESS_1,
             facility.MAILING_ADDRESS_CITY,
-            facility.MAILING_ADDRESS_STATE,
-            facility.MAILING_ADDRESS_ZIP,
+            [facility.MAILING_ADDRESS_STATE, facility.MAILING_ADDRESS_ZIP]
+              .filter(Boolean).join(' '),
           ].filter(Boolean).join(', ')}
         </div>
         <div className="facility-meta">
