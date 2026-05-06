@@ -21,7 +21,7 @@ const formatDate = (iso) => {
 
 const App = () => {
   const {
-    isLoaded, uploadedAt, saveData,
+    isInitializing, isLoaded, uploadedAt, saveData,
     search, getUniqueValues, findOwner,
     facilityCount, tankCount,
   } = useStoreData();
@@ -38,6 +38,20 @@ const App = () => {
     setShowUpload(false);
     setResults(null);
   };
+
+  // ── Reading from IndexedDB on first render ─────────────────────────────────
+  if (isInitializing) {
+    return (
+      <div className="app-layout">
+        <Header />
+        <div className="upload-fullpage">
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>
+            Loading…
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── No data: full-page upload ──────────────────────────────────────────────
   if (!isLoaded) {

@@ -1,43 +1,58 @@
 import { useState, useEffect, useCallback } from 'react';
+import localforage from 'localforage';
 
-const STORAGE_KEYS = {
+// IndexedDB store — no quota issues for large datasets
+const store = localforage.createInstance({ name: 'sea-store-info' });
+
+const KEYS = {
   tankData:   'sea_tank_data',
   ownerData:  'sea_owner_data',
   uploadedAt: 'sea_data_uploaded_at',
 };
 
 export const useStoreData = () => {
-  const [tankData,   setTankData]   = useState([]);
-  const [ownerData,  setOwnerData]  = useState([]);
-  const [uploadedAt, setUploadedAt] = useState(null);
-  const [isLoaded,   setIsLoaded]   = useState(false);
+  const [tankData,      setTankData]      = useState([]);
+  const [ownerData,     setOwnerData]     = useState([]);
+  const [uploadedAt,    setUploadedAt]    = useState(null);
+  const [isLoaded,      setIsLoaded]      = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Load from localStorage on mount
+  // Load from IndexedDB on mount
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.tankData);
-      const rawOwners = localStorage.getItem(STORAGE_KEYS.ownerData);
-      const ts = localStorage.getItem(STORAGE_KEYS.uploadedAt);
-      if (raw && rawOwners) {
-        setTankData(JSON.parse(raw));
-        setOwnerData(JSON.parse(rawOwners));
-        setUploadedAt(ts);
-        setIsLoaded(true);
+    (async () => {
+      try {
+        const [tanks, owners, ts] = await Promise.all([
+          store.getItem(KEYS.tankData),
+          store.getItem(KEYS.ownerData),
+          store.getItem(KEYS.uploadedAt),
+        ]);
+        if (tanks && owners) {
+          setTankData(tanks);
+          setOwnerData(owners);
+          setUploadedAt(ts);
+          setIsLoaded(true);
+        }
+      } catch {
+        // corrupted storage — start fresh
+      } finally {
+        setIsInitializing(false);
       }
-    } catch {
-      // corrupted localStorage — start fresh
-    }
+    })();
   }, []);
 
-  const saveData = useCallback(({ tankData: tanks, ownerData: owners }) => {
+  const saveData = useCallback(async ({ tankData: tanks, ownerData: owners }) => {
     const ts = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEYS.tankData,   JSON.stringify(tanks));
-    localStorage.setItem(STORAGE_KEYS.ownerData,  JSON.stringify(owners));
-    localStorage.setItem(STORAGE_KEYS.uploadedAt, ts);
+    // Update memory immediately so UI responds at once
     setTankData(tanks);
     setOwnerData(owners);
     setUploadedAt(ts);
     setIsLoaded(true);
+    // Persist to IndexedDB in the background
+    await Promise.all([
+      store.setItem(KEYS.tankData,   tanks),
+      store.setItem(KEYS.ownerData,  owners),
+      store.setItem(KEYS.uploadedAt, ts),
+    ]);
   }, []);
 
   // Grouped by AI_ID: [{ facility, tanks[] }]
@@ -85,6 +100,7 @@ export const useStoreData = () => {
   }, [tankData]);
 
   return {
+    isInitializing,
     isLoaded,
     uploadedAt,
     tankData,
