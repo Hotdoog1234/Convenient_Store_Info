@@ -31,7 +31,7 @@ const App = () => {
   const [results,    setResults]    = useState(null);
   const [showUpload, setShowUpload] = useState(false);
 
-  const handleSearch   = (category, term) => setResults(search(category, term));
+  const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
   const handleLocateMe = (lat, lng)       => setResults(findNearest(lat, lng, 5));
 
   const handleTankLoaded = (tankData) => {

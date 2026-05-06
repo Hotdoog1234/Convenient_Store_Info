@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import OwnerModal from './OwnerModal';
 import { formatMiles } from '../utils/geoDistance';
+import { TANK_STATUS_LABELS } from '../utils/tankStatusLabels';
 
 const TANK_FIELDS = [
   'SUBJECT_ITEM_ID',
@@ -26,31 +27,8 @@ const TANK_FIELDS = [
   'LINE_LEAK_DETECT_CODE',
 ];
 
-const STATUS_LABELS = {
-  TAC: 'Active',
-  TCS: 'Change In Service',
-  TCP: 'Closed In Place',
-  TTC: 'Temporarily Closed',
-  TOS: 'Temporarily Out of Service',
-  TRR: 'Removed and Replaced',
-  TRM: 'Removed Tank Verified',
-  TR8: 'Removed Prior to 1988',
-  TER: 'Removed Tank Ereg',
-  TBL: 'Removed Tank Backlog Regs',
-  T96: 'Removed Tank 1996 Regs',
-  TAB: 'Abandoned',
-  TRA: 'Abandoned Tank Newly Discovered',
-  TUR: 'Removed Tank Unverified',
-  TEX: 'Exempt',
-  TNF: 'Not Found',
-  TNV: 'Not Verified',
-  TNR: 'Not Registered',
-  CAR: 'Contract Application Received',
-  DEF: 'Diesel Exhaust Fluid Tank',
-  DUP: 'Duplicate Tank',
-  NFA: 'No Further Action',
-  TPS: 'Pending Sotra',
-};
+// Use the shared label map (imported above)
+const STATUS_LABELS = TANK_STATUS_LABELS;
 
 const DATE_FIELDS = new Set([
   'TANK_INSTALL_DATE', 'TEMP_CLOSE_DATE', 'LAST_CONT_PRODUCT_DATE',

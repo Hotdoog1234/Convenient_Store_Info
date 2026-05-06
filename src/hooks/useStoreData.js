@@ -81,9 +81,10 @@ export const useStoreData = () => {
     return Object.values(map);
   }, []);
 
-  const search = useCallback((category, term) => {
+  const search = useCallback((category, term, term2) => {
     if (!category || !term) return [];
     let results = [];
+
     if (category === 'AI_ID') {
       results = tankData.filter((r) => String(r.AI_ID) === String(term).trim());
     } else if (category === 'AI_NAME' || category === 'ADDRESS_1') {
@@ -91,9 +92,31 @@ export const useStoreData = () => {
       results = tankData.filter((r) =>
         (r[category] || '').toString().toLowerCase().includes(lower)
       );
-    } else if (category === 'COUNTY' || category === 'OWNER_NAME') {
-      results = tankData.filter((r) => (r[category] || 'N/A') === term);
+    } else if (category === 'COUNTY') {
+      results = tankData.filter((r) => (r.COUNTY || 'N/A') === term);
+    } else if (category === 'OWNER_NAME') {
+      // Partial, case-insensitive — works for both text input and dropdown selection
+      const lower = term.trim().toLowerCase();
+      results = tankData.filter((r) =>
+        (r.OWNER_NAME || '').toLowerCase().includes(lower)
+      );
+    } else if (category === 'TANK_STATUS_CODE') {
+      // All facilities that have at least one tank with this status
+      const matchIds = new Set(
+        tankData.filter((r) => r.TANK_STATUS_CODE?.trim() === term).map((r) => r.AI_ID)
+      );
+      results = tankData.filter((r) => matchIds.has(r.AI_ID));
+    } else if (category === 'TANK_STATUS_COUNTY') {
+      // Facilities in the given county that have at least one tank with this status
+      if (!term2) return [];
+      const matchIds = new Set(
+        tankData
+          .filter((r) => r.TANK_STATUS_CODE?.trim() === term && (r.COUNTY || 'N/A') === term2)
+          .map((r) => r.AI_ID)
+      );
+      results = tankData.filter((r) => matchIds.has(r.AI_ID));
     }
+
     return groupByFacility(results);
   }, [tankData, groupByFacility]);
 
