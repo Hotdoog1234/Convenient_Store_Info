@@ -52,6 +52,25 @@ const STATUS_LABELS = {
   TPS: 'Pending Sotra',
 };
 
+const DATE_FIELDS = new Set([
+  'TANK_INSTALL_DATE', 'TEMP_CLOSE_DATE', 'LAST_CONT_PRODUCT_DATE',
+  'CLOSED_IN_PLACE_DATE', 'REMOVAL_DATE', 'SERVICE_CHANGE_DATE',
+  'LAST_CP_TEST_DATE', 'LAST_TANK_TEST_DATE',
+]);
+
+// Excel serial dates count days from Dec 30 1899 (accounts for Excel's leap-year bug).
+// If the value is already a string date, return it unchanged.
+const formatCellValue = (field, value) => {
+  if (value == null || value === '') return 'N/A';
+  if (!DATE_FIELDS.has(field)) return value;
+  const num = Number(value);
+  if (isNaN(num) || !Number.isInteger(num) || num <= 0) return value;
+  const date = new Date(Date.UTC(1899, 11, 30) + num * 86400000);
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${m}/${d}/${date.getUTCFullYear()}`;
+};
+
 const label = (field) => field.replace(/_/g, ' ');
 
 const buildStatusSummary = (tanks) => {
@@ -136,7 +155,7 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
               <tr key={field}>
                 <th>{label(field)}</th>
                 {tanks.map((tank, i) => (
-                  <td key={i}>{tank[field] != null && tank[field] !== '' ? tank[field] : 'N/A'}</td>
+                  <td key={i}>{formatCellValue(field, tank[field])}</td>
                 ))}
               </tr>
             ))}
