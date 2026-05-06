@@ -2,36 +2,44 @@ import { useState, useEffect, useCallback } from 'react';
 import localforage from 'localforage';
 import { haversineMiles } from '../utils/geoDistance';
 
-// IndexedDB store — no quota issues for large datasets
 const store = localforage.createInstance({ name: 'sea-store-info' });
 
 const KEYS = {
-  tankData:   'sea_tank_data',
-  ownerData:  'sea_owner_data',
-  uploadedAt: 'sea_data_uploaded_at',
+  tankData:        'sea_tank_data',
+  ownerData:       'sea_owner_data',
+  tankUploadedAt:  'sea_tank_uploaded_at',
+  ownerUploadedAt: 'sea_owner_uploaded_at',
+  // legacy key — used as fallback on first load after previous version
+  legacyUploadedAt: 'sea_data_uploaded_at',
 };
 
 export const useStoreData = () => {
-  const [tankData,      setTankData]      = useState([]);
-  const [ownerData,     setOwnerData]     = useState([]);
-  const [uploadedAt,    setUploadedAt]    = useState(null);
-  const [isLoaded,      setIsLoaded]      = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [tankData,        setTankData]        = useState([]);
+  const [ownerData,       setOwnerData]       = useState([]);
+  const [tankUploadedAt,  setTankUploadedAt]  = useState(null);
+  const [ownerUploadedAt, setOwnerUploadedAt] = useState(null);
+  const [isLoaded,        setIsLoaded]        = useState(false);
+  const [isInitializing,  setIsInitializing]  = useState(true);
 
-  // Load from IndexedDB on mount
   useEffect(() => {
     (async () => {
       try {
-        const [tanks, owners, ts] = await Promise.all([
+        const [tanks, owners, tankTs, ownerTs, legacyTs] = await Promise.all([
           store.getItem(KEYS.tankData),
           store.getItem(KEYS.ownerData),
-          store.getItem(KEYS.uploadedAt),
+          store.getItem(KEYS.tankUploadedAt),
+          store.getItem(KEYS.ownerUploadedAt),
+          store.getItem(KEYS.legacyUploadedAt),
         ]);
-        if (tanks && owners) {
+        if (tanks) {
           setTankData(tanks);
-          setOwnerData(owners);
-          setUploadedAt(ts);
+          // fall back to legacy timestamp if per-type key not yet written
+          setTankUploadedAt(tankTs || legacyTs || null);
           setIsLoaded(true);
+        }
+        if (owners) {
+          setOwnerData(owners);
+          setOwnerUploadedAt(ownerTs || legacyTs || null);
         }
       } catch {
         // corrupted storage — start fresh
@@ -41,18 +49,24 @@ export const useStoreData = () => {
     })();
   }, []);
 
-  const saveData = useCallback(async ({ tankData: tanks, ownerData: owners }) => {
+  const saveTankData = useCallback(async (tanks) => {
     const ts = new Date().toISOString();
-    // Update memory immediately so UI responds at once
     setTankData(tanks);
-    setOwnerData(owners);
-    setUploadedAt(ts);
+    setTankUploadedAt(ts);
     setIsLoaded(true);
-    // Persist to IndexedDB in the background
     await Promise.all([
-      store.setItem(KEYS.tankData,   tanks),
-      store.setItem(KEYS.ownerData,  owners),
-      store.setItem(KEYS.uploadedAt, ts),
+      store.setItem(KEYS.tankData,       tanks),
+      store.setItem(KEYS.tankUploadedAt, ts),
+    ]);
+  }, []);
+
+  const saveOwnerData = useCallback(async (owners) => {
+    const ts = new Date().toISOString();
+    setOwnerData(owners);
+    setOwnerUploadedAt(ts);
+    await Promise.all([
+      store.setItem(KEYS.ownerData,       owners),
+      store.setItem(KEYS.ownerUploadedAt, ts),
     ]);
   }, []);
 
@@ -70,7 +84,6 @@ export const useStoreData = () => {
   const search = useCallback((category, term) => {
     if (!category || !term) return [];
     let results = [];
-
     if (category === 'AI_ID') {
       results = tankData.filter((r) => String(r.AI_ID) === String(term).trim());
     } else if (category === 'AI_NAME' || category === 'ADDRESS_1') {
@@ -81,7 +94,6 @@ export const useStoreData = () => {
     } else if (category === 'COUNTY' || category === 'OWNER_NAME') {
       results = tankData.filter((r) => (r[category] || 'N/A') === term);
     }
-
     return groupByFacility(results);
   }, [tankData, groupByFacility]);
 
@@ -100,7 +112,6 @@ export const useStoreData = () => {
     return new Set(tankData.map((r) => r.AI_ID)).size;
   }, [tankData]);
 
-  // Returns up to `count` nearest facilities sorted by distance, each with distanceMiles
   const findNearest = useCallback((userLat, userLng, count = 5) => {
     return groupByFacility(tankData)
       .map(({ facility, tanks }) => {
@@ -120,14 +131,16 @@ export const useStoreData = () => {
   return {
     isInitializing,
     isLoaded,
-    uploadedAt,
-    tankData,
-    saveData,
+    tankUploadedAt,
+    ownerUploadedAt,
+    saveTankData,
+    saveOwnerData,
     search,
     findNearest,
     getUniqueValues,
     findOwner,
     facilityCount,
-    tankCount: tankData.length,
+    tankCount:  tankData.length,
+    ownerCount: ownerData.length,
   };
 };

@@ -18,7 +18,25 @@ export const getSheetNames = (file) => {
   });
 };
 
-// Parse two specific named sheets from the file
+// Parse a single named sheet — returns a flat array of row objects
+export const parseSheet = (file, sheetName) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        resolve(XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+// Parse two specific named sheets from the file (kept for compatibility)
 export const parseExcelFile = (file, tankSheet, ownerSheet) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

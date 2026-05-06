@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import './styles/global.css';
 
 import { useStoreData } from './hooks/useStoreData';
-import Header     from './components/Header';
-import SearchBar  from './components/SearchBar';
+import Header       from './components/Header';
+import SearchBar    from './components/SearchBar';
 import FacilityCard from './components/FacilityCard';
-import DataUpload from './components/DataUpload';
-import EmptyState from './components/EmptyState';
+import DataUpload   from './components/DataUpload';
+import EmptyState   from './components/EmptyState';
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -21,29 +21,30 @@ const formatDate = (iso) => {
 
 const App = () => {
   const {
-    isInitializing, isLoaded, uploadedAt, saveData,
+    isInitializing, isLoaded,
+    tankUploadedAt, ownerUploadedAt,
+    saveTankData, saveOwnerData,
     search, findNearest, getUniqueValues, findOwner,
-    facilityCount, tankCount,
+    facilityCount, tankCount, ownerCount,
   } = useStoreData();
 
-  const [results,       setResults]       = useState(null); // null = no search yet
-  const [showUpload,    setShowUpload]     = useState(false);
+  const [results,    setResults]    = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
 
-  const handleSearch = (category, term) => {
-    setResults(search(category, term));
-  };
+  const handleSearch   = (category, term) => setResults(search(category, term));
+  const handleLocateMe = (lat, lng)       => setResults(findNearest(lat, lng, 5));
 
-  const handleLocateMe = (lat, lng) => {
-    setResults(findNearest(lat, lng, 5));
-  };
-
-  const handleDataLoaded = (parsed) => {
-    saveData(parsed);
+  const handleTankLoaded = (tankData) => {
+    saveTankData(tankData);
     setShowUpload(false);
     setResults(null);
   };
 
-  // ── Reading from IndexedDB on first render ─────────────────────────────────
+  const handleOwnerLoaded = (ownerData) => {
+    saveOwnerData(ownerData);
+    setShowUpload(false);
+  };
+
   const footer = (
     <footer className="app-footer">
       Shield Environmental Associates, Inc. {new Date().getFullYear()}
@@ -62,29 +63,30 @@ const App = () => {
     );
   }
 
-  // ── No data: full-page upload ──────────────────────────────────────────────
   if (!isLoaded) {
     return (
       <div className="app-layout">
         <Header />
         <div className="upload-fullpage">
-          <DataUpload onDataLoaded={handleDataLoaded} />
+          <DataUpload
+            onTankLoaded={handleTankLoaded}
+            onOwnerLoaded={handleOwnerLoaded}
+          />
         </div>
         {footer}
       </div>
     );
   }
 
-  // ── Data loaded: search UI ─────────────────────────────────────────────────
   return (
     <div className="app-layout">
       <Header onUpdateData={() => setShowUpload(true)} />
 
-      {/* Update-data overlay — passcode required */}
       {showUpload && (
         <div className="upload-overlay">
           <DataUpload
-            onDataLoaded={handleDataLoaded}
+            onTankLoaded={handleTankLoaded}
+            onOwnerLoaded={handleOwnerLoaded}
             onCancel={() => setShowUpload(false)}
             requirePasscode
           />
@@ -95,23 +97,31 @@ const App = () => {
         {/* Status bar */}
         <div className="status-bar">
           <span className="status-bar-text">
-            Data loaded
-            {uploadedAt && <span>— uploaded {formatDate(uploadedAt)}</span>}
-            <span>· {facilityCount()} facilities · {tankCount} tank records</span>
+            <span className="status-dataset">
+              <strong>Tank data:</strong>{' '}
+              {tankUploadedAt
+                ? <>{formatDate(tankUploadedAt)} · {tankCount.toLocaleString()} records</>
+                : <em>not uploaded</em>}
+            </span>
+            <span className="status-divider" aria-hidden="true">|</span>
+            <span className="status-dataset">
+              <strong>Owner data:</strong>{' '}
+              {ownerUploadedAt
+                ? <>{formatDate(ownerUploadedAt)} · {ownerCount.toLocaleString()} records</>
+                : <em>not uploaded</em>}
+            </span>
           </span>
           <button className="btn-accent" onClick={() => setShowUpload(true)}>
             Update Data
           </button>
         </div>
 
-        {/* Search panel */}
         <SearchBar
           onSearch={handleSearch}
           onLocateMe={handleLocateMe}
           getUniqueValues={getUniqueValues}
         />
 
-        {/* Results */}
         {results === null ? (
           <EmptyState />
         ) : results.length === 0 ? (
