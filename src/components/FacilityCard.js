@@ -82,7 +82,13 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   };
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
-  const uniqueTankCount = new Set(tanks.map((t) => t.SUBJECT_ITEM_ID).filter(Boolean)).size || tanks.length;
+  const ACTIVE_CODES = new Set(['TAC', 'TTC']);
+  const uniqueTankCount = new Set(
+    tanks
+      .filter((t) => ACTIVE_CODES.has(t.TANK_STATUS_CODE?.trim()))
+      .map((t) => t.SUBJECT_ITEM_ID)
+      .filter(Boolean)
+  ).size;
   const statusSummary   = buildStatusSummary(tanks);
 
   return (
@@ -114,7 +120,7 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
       {/* ── Summary section ── */}
       <div className="facility-summary">
         <div className="facility-summary-item">
-          <span className="section-label">Number of Tanks</span>
+          <span className="section-label">Active / In-Service Tanks</span>
           <span className="facility-summary-value">{uniqueTankCount}</span>
         </div>
         <div className="facility-summary-item facility-summary-item--wide">
