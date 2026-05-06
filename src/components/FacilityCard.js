@@ -79,6 +79,12 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   };
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
+
+  console.log('ADDRESS_1=' + facility.ADDRESS_1
+    + ' | MAILING_ADDRESS_CITY=' + facility.MAILING_ADDRESS_CITY
+    + ' | MAILING_ADDRESS_STATE=' + facility.MAILING_ADDRESS_STATE
+    + ' | MAILING_ADDRESS_ZIP=' + facility.MAILING_ADDRESS_ZIP);
+
   const ACTIVE_CODES = new Set(['TAC', 'TTC']);
   const uniqueTankCount = new Set(
     tanks
