@@ -94,7 +94,12 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
         <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
         <div className="facility-id">AI ID: {facility.AI_ID}</div>
         <div className="facility-address">
-          {facility.ADDRESS_1 || 'Address not available'}
+          {[
+            facility.ADDRESS_1,
+            facility.MAILING_ADDRESS_CITY,
+            [facility.MAILING_ADDRESS_STATE, facility.MAILING_ADDRESS_ZIP]
+              .filter(Boolean).join(' '),
+          ].filter(Boolean).join(', ')}
         </div>
         <div className="facility-meta">
           {facility.COUNTY && (
