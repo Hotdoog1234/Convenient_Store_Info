@@ -14,7 +14,7 @@ import EmptyState   from './components/EmptyState';
 import LoginScreen  from './components/LoginScreen';
 import AdminPanel   from './components/AdminPanel';
 
-const ADMIN_EMAIL = 'Robert_Francis@shieldmw.com';
+const ADMIN_EMAIL = 'robert_francis@shieldmw.com'; // Firebase normalises emails to lowercase
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -45,7 +45,7 @@ const App = () => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u && u.email !== ADMIN_EMAIL) {
+      if (u && u.email?.toLowerCase() !== ADMIN_EMAIL) {
         // Non-admin: check Firestore for disabled status
         try {
           const userDoc = await getDoc(doc(db, 'approvedUsers', u.uid));
@@ -71,7 +71,7 @@ const App = () => {
 
   const handleSignOut = () => { setShowAdmin(false); signOut(auth); };
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
   // ── Conditional renders — all hooks already called above ─────────────────
 
