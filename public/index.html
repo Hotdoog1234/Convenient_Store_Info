@@ -4,11 +4,30 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
+    <meta name="theme-color" content="#1a3a2a" />
+    <meta name="description" content="Shield Environmental UST App — Kentucky Underground Storage Tank Database" />
+
+    <!-- Security headers via meta (supplement server headers) -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+
+    <!-- Enforce HTTPS: redirect http → https in production (not localhost) -->
+    <script>
+      (function () {
+        var h = window.location.hostname;
+        if (
+          window.location.protocol === 'http:' &&
+          h !== 'localhost' &&
+          h !== '127.0.0.1' &&
+          h !== ''
+        ) {
+          window.location.replace(
+            'https:' + window.location.href.slice(window.location.protocol.length)
+          );
+        }
+      })();
+    </script>
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a

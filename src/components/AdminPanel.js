@@ -12,18 +12,18 @@ import {
   signOut as firebaseSignOut,
 } from 'firebase/auth';
 import emailjs from '@emailjs/browser';
-import { db, firebaseConfig } from '../firebase';
+import { auth, db, firebaseConfig } from '../firebase';
 
-// ── EmailJS config — fill in from your EmailJS dashboard ──────────────────
-// Template 1 (approval): variables {{to_name}}, {{to_email}}, {{temp_password}}
-// Template 2 (denial):   variables {{to_name}}, {{to_email}}
-const EMAILJS_SERVICE_ID        = 'service_1q3jqtp';
-const EMAILJS_APPROVAL_TEMPLATE = 'template_5i06wqv';
-const EMAILJS_DENIAL_TEMPLATE   = 'template_wfj2tmb';
-const EMAILJS_PUBLIC_KEY        = 'QEnhUmZl49thzCGKH';
-// ──────────────────────────────────────────────────────────────────────────
+// EmailJS credentials from environment variables
+const EMAILJS_SERVICE_ID        = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+const EMAILJS_APPROVAL_TEMPLATE = process.env.REACT_APP_EMAILJS_APPROVAL_TEMPLATE;
+const EMAILJS_DENIAL_TEMPLATE   = process.env.REACT_APP_EMAILJS_DENIAL_TEMPLATE;
+const EMAILJS_PUBLIC_KEY        = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
 
-const emailjsReady = EMAILJS_SERVICE_ID !== 'YOUR_SERVICE_ID';
+// Admin email — must match Firebase Auth and Firestore rules exactly
+const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
+
+const emailjsReady = !!EMAILJS_SERVICE_ID && !!EMAILJS_PUBLIC_KEY;
 
 const generateTempPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -269,6 +269,24 @@ const UsersTab = () => {
 // ── Admin Panel shell ──────────────────────────────────────────────────────
 const AdminPanel = ({ onClose }) => {
   const [tab, setTab] = useState('requests');
+
+  // Server-side guard — verify admin identity against Firebase Auth,
+  // not just the UI prop. Firestore rules enforce this again on every query.
+  const currentUser = auth.currentUser;
+  if (!currentUser || currentUser.email?.toLowerCase() !== ADMIN_EMAIL) {
+    return (
+      <div className="admin-overlay" onClick={onClose}>
+        <div className="admin-panel" style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ color: 'var(--color-accent)', fontWeight: 500 }}>
+            Access denied. Admin privileges required.
+          </p>
+          <button className="btn-outline" style={{ marginTop: 16 }} onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-overlay" onClick={onClose}>

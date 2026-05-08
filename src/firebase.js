@@ -1,16 +1,27 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
+// Config is read from environment variables at build time.
+// Real values live in .env (gitignored). See .env.example for required keys.
+// Note: Firebase client config is a project identifier, not a secret —
+// data security is enforced by Firestore Security Rules, not by hiding this config.
 export const firebaseConfig = {
-  apiKey: "AIzaSyBhi4YBYiO1azDrl7Oy_i5WMEp4YmvL4OA",
-  authDomain: "ust-app-aa616.firebaseapp.com",
-  projectId: "ust-app-aa616",
-  storageBucket: "ust-app-aa616.firebasestorage.app",
-  messagingSenderId: "51015990119",
-  appId: "1:51015990119:web:60fe7f96e0e259343bcdc2",
+  apiKey:            process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain:        process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId:         process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket:     process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
+
+// Explicit LOCAL persistence: tokens survive page refreshes but are
+// stored in IndexedDB by the Firebase SDK (not as raw credentials).
+// Firebase tokens are short-lived JWTs rotated automatically — no passwords
+// are ever stored in the browser.
+setPersistence(auth, browserLocalPersistence).catch(console.error);
