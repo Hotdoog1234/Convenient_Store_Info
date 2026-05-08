@@ -80,17 +80,6 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
 
   const owner = modalOwnerName ? findOwner(modalOwnerName) : null;
 
-  // sheet_to_json omits keys for empty cells, so the first row used as `facility`
-  // may be missing address fields that exist on other rows. Scan all rows to find
-  // the first non-empty value for each field.
-  const anyField = (field) => {
-    for (const row of [facility, ...tanks]) {
-      const v = row[field];
-      if (v != null && v !== '') return v;
-    }
-    return null;
-  };
-
   const ACTIVE_CODES = new Set(['TAC', 'TTC']);
   const uniqueTankCount = new Set(
     tanks
@@ -106,12 +95,7 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
         <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
         <div className="facility-id">AI ID: {facility.AI_ID}</div>
         <div className="facility-address">
-          {[
-            anyField('ADDRESS_1'),
-            anyField('MAILING_ADDRESS_CITY'),
-            [anyField('MAILING_ADDRESS_STATE'), anyField('MAILING_ADDRESS_ZIP')]
-              .filter(Boolean).join(' '),
-          ].filter(Boolean).join(', ')}
+          {facility.ADDRESS_1 || ''}
         </div>
         <div className="facility-meta">
           {facility.COUNTY && (
