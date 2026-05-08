@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles/global.css';
+
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './firebase';
 
 import { useStoreData } from './hooks/useStoreData';
 import Header       from './components/Header';
@@ -7,6 +10,7 @@ import SearchBar    from './components/SearchBar';
 import FacilityCard from './components/FacilityCard';
 import DataUpload   from './components/DataUpload';
 import EmptyState   from './components/EmptyState';
+import LoginScreen  from './components/LoginScreen';
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -20,6 +24,33 @@ const formatDate = (iso) => {
 };
 
 const App = () => {
+  const [user,        setUser]        = useState(undefined); // undefined = still checking
+  const [authReady,   setAuthReady]   = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+    return unsub;
+  }, []);
+
+  const handleSignOut = () => signOut(auth);
+
+  // Auth state not yet resolved — show nothing to avoid flash
+  if (!authReady) {
+    return (
+      <div className="app-layout">
+        <div className="upload-fullpage">
+          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in — show login screen
+  if (!user) return <LoginScreen />;
+
   const {
     isInitializing, isLoaded,
     tankUploadedAt, ownerUploadedAt,
@@ -54,7 +85,7 @@ const App = () => {
   if (isInitializing) {
     return (
       <div className="app-layout">
-        <Header />
+        <Header onSignOut={handleSignOut} />
         <div className="upload-fullpage">
           <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
         </div>
@@ -66,7 +97,7 @@ const App = () => {
   if (!isLoaded) {
     return (
       <div className="app-layout">
-        <Header />
+        <Header onSignOut={handleSignOut} />
         <div className="upload-fullpage">
           <DataUpload
             onTankLoaded={handleTankLoaded}
@@ -80,7 +111,7 @@ const App = () => {
 
   return (
     <div className="app-layout">
-      <Header onUpdateData={() => setShowUpload(true)} />
+      <Header onUpdateData={() => setShowUpload(true)} onSignOut={handleSignOut} />
 
       {showUpload && (
         <div className="upload-overlay">

@@ -594,3 +594,128 @@ body {
   .facility-card-header { padding: 16px; }
   .tank-table-wrap { padding: 0 12px 16px; }
 }
+
+/* ── Login screen ── */
+.login-page {
+  min-height: 100vh;
+  background: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.login-header {
+  background: var(--color-primary-dark);
+  padding: 32px 32px 24px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.login-app-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.login-app-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+}
+
+.login-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.login-tab {
+  flex: 1;
+  padding: 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.login-tab--active {
+  color: var(--color-primary-mid);
+  border-bottom-color: var(--color-primary-mid);
+}
+
+.login-form {
+  padding: 24px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-register-note {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.login-submit {
+  width: 100%;
+  padding: 11px;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
+.login-error {
+  font-size: 13px;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.login-success {
+  font-size: 13px;
+  color: var(--color-primary-mid);
+  background: var(--color-primary-pale);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Header sign-out button — light outline on dark background */
+.btn-outline--light {
+  border-color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.85);
+}
+.btn-outline--light:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-color: #fff;
+}

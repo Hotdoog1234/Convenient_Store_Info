@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ onUpdateData }) => (
+const Header = ({ onUpdateData, onSignOut }) => (
   <header className="header">
     <img
       src={`${process.env.PUBLIC_URL}/shield-logo.jpg`}
@@ -14,6 +14,11 @@ const Header = ({ onUpdateData }) => (
     {onUpdateData && (
       <button className="btn-accent" onClick={onUpdateData}>
         Update Data
+      </button>
+    )}
+    {onSignOut && (
+      <button className="btn-outline btn-outline--light" onClick={onSignOut}>
+        Sign Out
       </button>
     )}
   </header>
