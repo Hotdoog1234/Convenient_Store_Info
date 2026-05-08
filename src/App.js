@@ -24,8 +24,19 @@ const formatDate = (iso) => {
 };
 
 const App = () => {
-  const [user,        setUser]        = useState(undefined); // undefined = still checking
-  const [authReady,   setAuthReady]   = useState(false);
+  // ── All hooks at the top — no exceptions ──────────────────────────────────
+  const [user,       setUser]       = useState(undefined); // undefined = still checking
+  const [authReady,  setAuthReady]  = useState(false);
+  const [results,    setResults]    = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const {
+    isInitializing, isLoaded,
+    tankUploadedAt, ownerUploadedAt,
+    saveTankData, saveOwnerData,
+    search, findNearest, getUniqueValues, findOwner,
+    facilityCount, tankCount, ownerCount,
+  } = useStoreData();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -37,7 +48,8 @@ const App = () => {
 
   const handleSignOut = () => signOut(auth);
 
-  // Auth state not yet resolved — show nothing to avoid flash
+  // ── Conditional renders after all hooks ───────────────────────────────────
+
   if (!authReady) {
     return (
       <div className="app-layout">
@@ -48,19 +60,7 @@ const App = () => {
     );
   }
 
-  // Not logged in — show login screen
   if (!user) return <LoginScreen />;
-
-  const {
-    isInitializing, isLoaded,
-    tankUploadedAt, ownerUploadedAt,
-    saveTankData, saveOwnerData,
-    search, findNearest, getUniqueValues, findOwner,
-    facilityCount, tankCount, ownerCount,
-  } = useStoreData();
-
-  const [results,    setResults]    = useState(null);
-  const [showUpload, setShowUpload] = useState(false);
 
   const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
   const handleLocateMe = (lat, lng)       => setResults(findNearest(lat, lng, 5));
