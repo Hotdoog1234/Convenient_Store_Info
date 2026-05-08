@@ -10,17 +10,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Helper: only the named admin may perform this action ──────────────────
+    // Note: Firebase Auth normalises all emails to lowercase
     function isAdmin() {
       return request.auth != null
           && request.auth.token.email == 'robert_francis@shieldmw.com';
     }
 
     // ── Access requests ───────────────────────────────────────────────────────
-    // Anyone (unauthenticated) may CREATE a request — that's the registration form.
-    // Only the admin may READ, UPDATE, or DELETE requests.
-    match /accessRequests/{docId} {
+    // Anyone (unauthenticated) may CREATE — that's the registration form.
+    // Only the admin may READ, UPDATE, or DELETE.
+    match /accessRequests/{id} {
       allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // ── Approved users ────────────────────────────────────────────────────────
