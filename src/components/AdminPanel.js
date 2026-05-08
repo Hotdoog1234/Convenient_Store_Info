@@ -17,10 +17,10 @@ import { db, firebaseConfig } from '../firebase';
 // ── EmailJS config — fill in from your EmailJS dashboard ──────────────────
 // Template 1 (approval): variables {{to_name}}, {{to_email}}, {{temp_password}}
 // Template 2 (denial):   variables {{to_name}}, {{to_email}}
-const EMAILJS_SERVICE_ID        = 'YOUR_SERVICE_ID';
-const EMAILJS_APPROVAL_TEMPLATE = 'YOUR_APPROVAL_TEMPLATE_ID';
-const EMAILJS_DENIAL_TEMPLATE   = 'YOUR_DENIAL_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY        = 'YOUR_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID        = 'service_1q3jqtp';
+const EMAILJS_APPROVAL_TEMPLATE = 'template_5i06wqv';
+const EMAILJS_DENIAL_TEMPLATE   = 'template_wfj2tmb';
+const EMAILJS_PUBLIC_KEY        = 'QEnhUmZl49thzCGKH';
 // ──────────────────────────────────────────────────────────────────────────
 
 const emailjsReady = EMAILJS_SERVICE_ID !== 'YOUR_SERVICE_ID';
