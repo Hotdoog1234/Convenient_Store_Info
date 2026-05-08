@@ -1,0 +1,304 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  collection, query, orderBy, onSnapshot,
+  doc, updateDoc, setDoc, serverTimestamp, where,
+} from 'firebase/firestore';
+import {
+  initializeApp, deleteApp,
+} from 'firebase/app';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
+import emailjs from '@emailjs/browser';
+import { db, firebaseConfig } from '../firebase';
+
+// ── EmailJS config — fill in from your EmailJS dashboard ──────────────────
+// Template 1 (approval): variables {{to_name}}, {{to_email}}, {{temp_password}}
+// Template 2 (denial):   variables {{to_name}}, {{to_email}}
+const EMAILJS_SERVICE_ID        = 'YOUR_SERVICE_ID';
+const EMAILJS_APPROVAL_TEMPLATE = 'YOUR_APPROVAL_TEMPLATE_ID';
+const EMAILJS_DENIAL_TEMPLATE   = 'YOUR_DENIAL_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY        = 'YOUR_PUBLIC_KEY';
+// ──────────────────────────────────────────────────────────────────────────
+
+const emailjsReady = EMAILJS_SERVICE_ID !== 'YOUR_SERVICE_ID';
+
+const generateTempPassword = () => {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 12 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join('');
+};
+
+const fmtDate = (ts) => {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// Creates a Firebase Auth account WITHOUT affecting the admin's current session
+// by using a disposable secondary Firebase app instance.
+const createUserAccount = async (email, password) => {
+  const appName = `secondary-${Date.now()}`;
+  const secondaryApp  = initializeApp(firebaseConfig, appName);
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await firebaseSignOut(secondaryAuth);
+    return cred.user;
+  } finally {
+    await deleteApp(secondaryApp);
+  }
+};
+
+// ── Access Requests tab ────────────────────────────────────────────────────
+const RequestsTab = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [status,   setStatus]   = useState({}); // { [id]: 'working'|'done'|'error' }
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'accessRequests'),
+      where('status', '==', 'pending'),
+      orderBy('timestamp', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, () => setLoading(false));
+    return unsub;
+  }, []);
+
+  const setRowStatus = (id, s) => setStatus(prev => ({ ...prev, [id]: s }));
+
+  const handleApprove = async (req) => {
+    setRowStatus(req.id, 'working');
+    try {
+      const tempPassword = generateTempPassword();
+      const newUser = await createUserAccount(req.email, tempPassword);
+
+      await setDoc(doc(db, 'approvedUsers', newUser.uid), {
+        uid:        newUser.uid,
+        name:       req.name,
+        email:      req.email,
+        createdAt:  serverTimestamp(),
+        lastSignIn: null,
+        disabled:   false,
+      });
+
+      await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
+
+      if (emailjsReady) {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID, EMAILJS_APPROVAL_TEMPLATE,
+          { to_name: req.name, to_email: req.email, temp_password: tempPassword },
+          EMAILJS_PUBLIC_KEY
+        );
+      }
+
+      setRowStatus(req.id, 'approved');
+    } catch (err) {
+      console.error('Approve failed:', err);
+      setRowStatus(req.id, 'error');
+    }
+  };
+
+  const handleDeny = async (req) => {
+    setRowStatus(req.id, 'working');
+    try {
+      await updateDoc(doc(db, 'accessRequests', req.id), { status: 'denied' });
+
+      if (emailjsReady) {
+        await emailjs.send(
+          EMAILJS_SERVICE_ID, EMAILJS_DENIAL_TEMPLATE,
+          { to_name: req.name, to_email: req.email },
+          EMAILJS_PUBLIC_KEY
+        ).catch(() => {}); // denial email is optional — don't block on failure
+      }
+
+      setRowStatus(req.id, 'denied');
+    } catch (err) {
+      console.error('Deny failed:', err);
+      setRowStatus(req.id, 'error');
+    }
+  };
+
+  if (loading) return <div className="admin-loading">Loading requests…</div>;
+  if (requests.length === 0) return (
+    <div className="admin-empty">No pending access requests.</div>
+  );
+
+  return (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Date Requested</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map(req => {
+            const s = status[req.id];
+            return (
+              <tr key={req.id}>
+                <td>{req.name}</td>
+                <td>{req.email}</td>
+                <td>{fmtDate(req.timestamp)}</td>
+                <td>
+                  {s === 'working' && <span className="admin-status">Working…</span>}
+                  {s === 'approved' && <span className="admin-status admin-status--ok">✓ Approved</span>}
+                  {s === 'denied'   && <span className="admin-status admin-status--muted">✕ Denied</span>}
+                  {s === 'error'    && <span className="admin-status admin-status--err">Error — retry</span>}
+                  {!s && (
+                    <div className="admin-actions">
+                      <button
+                        className="btn-primary admin-btn-sm"
+                        onClick={() => handleApprove(req)}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="btn-outline admin-btn-sm admin-btn-deny"
+                        onClick={() => handleDeny(req)}
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// ── Active Users tab ───────────────────────────────────────────────────────
+const UsersTab = () => {
+  const [users,   setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [status,  setStatus]  = useState({});
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'approvedUsers'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, () => setLoading(false));
+    return unsub;
+  }, []);
+
+  const handleCancel = useCallback(async (u) => {
+    if (!window.confirm(`Cancel account for ${u.email}? They will be signed out immediately.`)) return;
+    setStatus(prev => ({ ...prev, [u.uid]: 'working' }));
+    try {
+      await updateDoc(doc(db, 'approvedUsers', u.uid), { disabled: true });
+      setStatus(prev => ({ ...prev, [u.uid]: 'cancelled' }));
+    } catch (err) {
+      console.error('Cancel failed:', err);
+      setStatus(prev => ({ ...prev, [u.uid]: 'error' }));
+    }
+  }, []);
+
+  if (loading) return <div className="admin-loading">Loading users…</div>;
+  if (users.length === 0) return (
+    <div className="admin-empty">No approved users yet.</div>
+  );
+
+  return (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Last Sign In</th>
+            <th>Date Created</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(u => {
+            const s = status[u.uid];
+            const isDisabled = u.disabled;
+            return (
+              <tr key={u.uid} className={isDisabled ? 'admin-row--disabled' : ''}>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td>{fmtDate(u.lastSignIn)}</td>
+                <td>{fmtDate(u.createdAt)}</td>
+                <td>
+                  <span className={`admin-badge ${isDisabled ? 'admin-badge--off' : 'admin-badge--on'}`}>
+                    {isDisabled ? 'Cancelled' : 'Active'}
+                  </span>
+                </td>
+                <td>
+                  {s === 'working'   && <span className="admin-status">Working…</span>}
+                  {s === 'cancelled' && <span className="admin-status admin-status--muted">Account cancelled</span>}
+                  {s === 'error'     && <span className="admin-status admin-status--err">Error — retry</span>}
+                  {!s && !isDisabled && (
+                    <button
+                      className="btn-outline admin-btn-sm admin-btn-deny"
+                      onClick={() => handleCancel(u)}
+                    >
+                      Cancel Account
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// ── Admin Panel shell ──────────────────────────────────────────────────────
+const AdminPanel = ({ onClose }) => {
+  const [tab, setTab] = useState('requests');
+
+  return (
+    <div className="admin-overlay" onClick={onClose}>
+      <div className="admin-panel" onClick={e => e.stopPropagation()}>
+        <div className="admin-panel-header">
+          <h2 className="admin-panel-title">Admin Panel</h2>
+          <button className="admin-close" onClick={onClose} title="Close">✕</button>
+        </div>
+
+        <div className="admin-tabs">
+          <button
+            className={`admin-tab${tab === 'requests' ? ' admin-tab--active' : ''}`}
+            onClick={() => setTab('requests')}
+          >
+            Access Requests
+          </button>
+          <button
+            className={`admin-tab${tab === 'users' ? ' admin-tab--active' : ''}`}
+            onClick={() => setTab('users')}
+          >
+            Active Users
+          </button>
+        </div>
+
+        <div className="admin-panel-body">
+          {tab === 'requests' ? <RequestsTab /> : <UsersTab />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;

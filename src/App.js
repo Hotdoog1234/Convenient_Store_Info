@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './styles/global.css';
 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from './firebase';
 
 import { useStoreData } from './hooks/useStoreData';
 import Header       from './components/Header';
@@ -11,6 +12,9 @@ import FacilityCard from './components/FacilityCard';
 import DataUpload   from './components/DataUpload';
 import EmptyState   from './components/EmptyState';
 import LoginScreen  from './components/LoginScreen';
+import AdminPanel   from './components/AdminPanel';
+
+const ADMIN_EMAIL = 'Robert_Francis@shieldmw.com';
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -24,11 +28,12 @@ const formatDate = (iso) => {
 };
 
 const App = () => {
-  // ── All hooks at the top — no exceptions ──────────────────────────────────
-  const [user,       setUser]       = useState(undefined); // undefined = still checking
+  // ── All hooks unconditionally at the top ──────────────────────────────────
+  const [user,       setUser]       = useState(undefined);
   const [authReady,  setAuthReady]  = useState(false);
   const [results,    setResults]    = useState(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [showAdmin,  setShowAdmin]  = useState(false);
 
   const {
     isInitializing, isLoaded,
@@ -39,16 +44,36 @@ const App = () => {
   } = useStoreData();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u && u.email !== ADMIN_EMAIL) {
+        // Non-admin: check Firestore for disabled status
+        try {
+          const userDoc = await getDoc(doc(db, 'approvedUsers', u.uid));
+          if (userDoc.exists() && userDoc.data().disabled) {
+            await signOut(auth);
+            return; // setUser stays null → shows LoginScreen
+          }
+          // Record last sign-in time
+          if (userDoc.exists()) {
+            await updateDoc(doc(db, 'approvedUsers', u.uid), {
+              lastSignIn: serverTimestamp(),
+            });
+          }
+        } catch (e) {
+          console.error('Firestore user check failed:', e);
+        }
+      }
       setUser(u);
       setAuthReady(true);
     });
     return unsub;
   }, []);
 
-  const handleSignOut = () => signOut(auth);
+  const handleSignOut = () => { setShowAdmin(false); signOut(auth); };
 
-  // ── Conditional renders after all hooks ───────────────────────────────────
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  // ── Conditional renders — all hooks already called above ─────────────────
 
   if (!authReady) {
     return (
@@ -63,7 +88,7 @@ const App = () => {
   if (!user) return <LoginScreen />;
 
   const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
-  const handleLocateMe = (lat, lng)       => setResults(findNearest(lat, lng, 5));
+  const handleLocateMe = (lat, lng)              => setResults(findNearest(lat, lng, 5));
 
   const handleTankLoaded = (tankData) => {
     saveTankData(tankData);
@@ -85,7 +110,7 @@ const App = () => {
   if (isInitializing) {
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} />
+        <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
           <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
         </div>
@@ -97,7 +122,7 @@ const App = () => {
   if (!isLoaded) {
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} />
+        <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
           <DataUpload
             onTankLoaded={handleTankLoaded}
@@ -111,7 +136,14 @@ const App = () => {
 
   return (
     <div className="app-layout">
-      <Header onUpdateData={() => setShowUpload(true)} onSignOut={handleSignOut} />
+      <Header
+        onUpdateData={() => setShowUpload(true)}
+        onSignOut={handleSignOut}
+        isAdmin={isAdmin}
+        onAdmin={() => setShowAdmin(true)}
+      />
+
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       {showUpload && (
         <div className="upload-overlay">
@@ -125,7 +157,6 @@ const App = () => {
       )}
 
       <main className="main-content">
-        {/* Status bar */}
         <div className="status-bar">
           <span className="status-bar-text">
             <span className="status-dataset">
