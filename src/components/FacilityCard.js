@@ -92,8 +92,8 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   return (
     <div className="card facility-card">
       <div className="facility-card-header">
-        <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
         <div className="facility-id">AI ID: {facility.AI_ID}</div>
+        <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
         <div className="facility-address">
           {[
             facility.ADDRESS_1,
