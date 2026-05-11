@@ -53,10 +53,13 @@ export const useStoreData = (userReady = false) => {
           getDoc(doc(db, 'metadata', 'ownerData')),
         ]);
 
+        console.log('[useStoreData] metadata/tankData exists:', tankMeta.exists(), tankMeta.exists() ? tankMeta.data() : '(no doc)');
+        console.log('[useStoreData] metadata/ownerData exists:', ownerMeta.exists(), ownerMeta.exists() ? ownerMeta.data() : '(no doc)');
+
         const tankBatchCount  = tankMeta.exists()  ? (tankMeta.data().batchCount  ?? 0) : 0;
         const ownerBatchCount = ownerMeta.exists() ? (ownerMeta.data().batchCount ?? 0) : 0;
 
-        console.log(`[useStoreData] Metadata loaded — tankBatches: ${tankBatchCount}, ownerBatches: ${ownerBatchCount}`);
+        console.log(`[useStoreData] Fetching batches — tankBatches: ${tankBatchCount}, ownerBatches: ${ownerBatchCount}`);
 
         const [tanks, owners] = await Promise.all([
           readDataBatches('tankData',  tankBatchCount),
@@ -64,6 +67,10 @@ export const useStoreData = (userReady = false) => {
         ]);
 
         console.log(`[useStoreData] Fetch complete — tanks: ${tanks.length}, owners: ${owners.length}`);
+
+        if (tanks.length === 0) {
+          console.warn('[useStoreData] No tank data returned from Firestore. batchCount was:', tankBatchCount);
+        }
 
         if (tanks.length > 0) {
           setTankData(tanks);
