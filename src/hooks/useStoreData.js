@@ -31,7 +31,7 @@ const readDataBatches = async (collectionName, batchCount) => {
   return snapshots.flatMap(s => (s.exists() ? s.data().records : []));
 };
 
-export const useStoreData = () => {
+export const useStoreData = (userReady = false) => {
   const [tankData,        setTankData]        = useState([]);
   const [ownerData,       setOwnerData]       = useState([]);
   const [tankUploadedAt,  setTankUploadedAt]  = useState(null);
@@ -40,8 +40,14 @@ export const useStoreData = () => {
   const [isInitializing,  setIsInitializing]  = useState(true);
 
   useEffect(() => {
+    // Wait until Firebase Auth has confirmed a logged-in user before
+    // fetching — Firestore rules deny unauthenticated reads.
+    if (!userReady) return;
+
     (async () => {
       try {
+        console.log('[useStoreData] Starting Firestore fetch…');
+
         const [tankMeta, ownerMeta] = await Promise.all([
           getDoc(doc(db, 'metadata', 'tankData')),
           getDoc(doc(db, 'metadata', 'ownerData')),
@@ -50,10 +56,14 @@ export const useStoreData = () => {
         const tankBatchCount  = tankMeta.exists()  ? (tankMeta.data().batchCount  ?? 0) : 0;
         const ownerBatchCount = ownerMeta.exists() ? (ownerMeta.data().batchCount ?? 0) : 0;
 
+        console.log(`[useStoreData] Metadata loaded — tankBatches: ${tankBatchCount}, ownerBatches: ${ownerBatchCount}`);
+
         const [tanks, owners] = await Promise.all([
           readDataBatches('tankData',  tankBatchCount),
           readDataBatches('ownerData', ownerBatchCount),
         ]);
+
+        console.log(`[useStoreData] Fetch complete — tanks: ${tanks.length}, owners: ${owners.length}`);
 
         if (tanks.length > 0) {
           setTankData(tanks);
@@ -70,12 +80,12 @@ export const useStoreData = () => {
           setOwnerUploadedAt(ts?.toDate ? ts.toDate().toISOString() : ts);
         }
       } catch (err) {
-        console.error('Firestore load failed:', err);
+        console.error('[useStoreData] Firestore load failed:', err);
       } finally {
         setIsInitializing(false);
       }
     })();
-  }, []);
+  }, [userReady]);
 
   const saveTankData = useCallback(async (tanks) => {
     const batchCount = await writeDataBatches('tankData', tanks);

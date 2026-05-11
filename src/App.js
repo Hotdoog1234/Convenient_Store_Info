@@ -47,7 +47,7 @@ const App = () => {
     saveTankData, saveOwnerData,
     search, findNearest, getUniqueValues, findOwner,
     facilityCount, tankCount, ownerCount,
-  } = useStoreData();
+  } = useStoreData(authReady && !!user);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
