@@ -173,9 +173,6 @@ const App = () => {
                 : <em>not uploaded</em>}
             </span>
           </span>
-          <button className="btn-accent" onClick={() => setShowUpload(true)}>
-            Update Data
-          </button>
         </div>
 
         <SearchBar
