@@ -1,9 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { getSheetNames, parseSheet } from '../utils/excelParser';
 
-// ── Change the passcode here ───────────────────────────────────────────────
 const UPLOAD_PASSCODE = 'shield2024';
-// ──────────────────────────────────────────────────────────────────────────
 
 const STEPS = {
   PASSCODE:     'passcode',
@@ -18,14 +16,14 @@ const TYPE_CONFIG = {
     icon:        '🛢️',
     description: 'Facility and tank records (one row per tank)',
     sheetLabel:  'Select the sheet containing facility / tank data',
-    successMsg:  (rows, facs) => `Loaded ${facs} facilities · ${rows} tank records`,
+    successMsg:  (rows, facs) => `Saved ${facs} facilities · ${rows} tank records to Firestore`,
   },
   owner: {
     label:       'Owner Data',
     icon:        '👤',
     description: 'Owner contact information',
     sheetLabel:  'Select the sheet containing owner data',
-    successMsg:  (rows) => `Loaded ${rows} owner records`,
+    successMsg:  (rows) => `Saved ${rows} owner records to Firestore`,
   },
 };
 
@@ -35,7 +33,7 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
   const [step,          setStep]          = useState(initialStep);
   const [passcodeInput, setPasscodeInput] = useState('');
   const [passcodeError, setPasscodeError] = useState(false);
-  const [dataType,      setDataType]      = useState(null); // 'tank' | 'owner'
+  const [dataType,      setDataType]      = useState(null);
   const [dragOver,      setDragOver]      = useState(false);
   const [file,          setFile]          = useState(null);
   const [sheetNames,    setSheetNames]    = useState([]);
@@ -46,7 +44,6 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
   const inputRef = useRef();
   const config = dataType ? TYPE_CONFIG[dataType] : null;
 
-  // ── Step 1: Passcode ───────────────────────────────────────────────────────
   const handlePasscode = (e) => {
     e.preventDefault();
     if (passcodeInput === UPLOAD_PASSCODE) {
@@ -58,14 +55,12 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
     }
   };
 
-  // ── Step 2: Choose type ────────────────────────────────────────────────────
   const handleChooseType = (type) => {
     setDataType(type);
     setStatus(null);
     setStep(STEPS.UPLOAD);
   };
 
-  // ── Step 3: File selection → read sheet names ──────────────────────────────
   const handleFile = async (selectedFile) => {
     if (!selectedFile) return;
     setLoading(true);
@@ -89,23 +84,24 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
     handleFile(e.dataTransfer.files[0]);
   };
 
-  // ── Step 4: Confirm sheet → parse ─────────────────────────────────────────
   const handleConfirm = async () => {
     if (!selectedSheet) return;
     setLoading(true);
     setStatus(null);
     try {
+      setStatus({ type: 'working', message: 'Parsing file…' });
       const rows = await parseSheet(file, selectedSheet);
+      setStatus({ type: 'working', message: 'Saving to Firestore…' });
       if (dataType === 'tank') {
+        await onTankLoaded?.(rows);
         const facs = new Set(rows.map((r) => r.AI_ID)).size;
         setStatus({ type: 'success', message: config.successMsg(rows.length, facs) });
-        onTankLoaded?.(rows);
       } else {
+        await onOwnerLoaded?.(rows);
         setStatus({ type: 'success', message: config.successMsg(rows.length) });
-        onOwnerLoaded?.(rows);
       }
     } catch (err) {
-      setStatus({ type: 'error', message: `Failed to parse sheet: ${err.message}` });
+      setStatus({ type: 'error', message: `Failed: ${err.message}` });
       setStep(STEPS.UPLOAD);
     } finally {
       setLoading(false);
@@ -120,7 +116,6 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
     setStatus(null);
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="upload-card">
 
@@ -227,6 +222,7 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
               className="form-select"
               value={selectedSheet}
               onChange={(e) => setSelectedSheet(e.target.value)}
+              disabled={loading || status?.type === 'success'}
             >
               {sheetNames.map((name) => (
                 <option key={name} value={name}>{name}</option>
@@ -234,24 +230,38 @@ const DataUpload = ({ onTankLoaded, onOwnerLoaded, onCancel, requirePasscode = f
             </select>
           </div>
 
-          {loading && <p style={{ color: 'var(--color-text-secondary)', marginBottom: 12 }}>Parsing data…</p>}
+          {status?.type === 'working' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div className="spinner spinner--sm" />
+              <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>{status.message}</p>
+            </div>
+          )}
           {status?.type === 'success' && <p className="upload-success">✓ {status.message}</p>}
           {status?.type === 'error'   && <p className="upload-error">⚠ {status.message}</p>}
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
-            <button
-              className="btn-outline"
-              onClick={() => { setStep(STEPS.UPLOAD); setFile(null); setSheetNames([]); setStatus(null); }}
-            >
-              ← Back
-            </button>
-            <button
-              className="btn-primary"
-              onClick={handleConfirm}
-              disabled={loading || !selectedSheet}
-            >
-              Load Data
-            </button>
+            {status?.type !== 'success' && (
+              <button
+                className="btn-outline"
+                onClick={() => { setStep(STEPS.UPLOAD); setFile(null); setSheetNames([]); setStatus(null); }}
+                disabled={loading}
+              >
+                ← Back
+              </button>
+            )}
+            {status?.type === 'success' ? (
+              <button className="btn-primary" style={{ marginLeft: 'auto' }} onClick={onCancel}>
+                Close
+              </button>
+            ) : (
+              <button
+                className="btn-primary"
+                onClick={handleConfirm}
+                disabled={loading || !selectedSheet}
+              >
+                Load Data
+              </button>
+            )}
           </div>
         </>
       )}

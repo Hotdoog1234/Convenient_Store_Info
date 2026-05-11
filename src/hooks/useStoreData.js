@@ -1,16 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
-import localforage from 'localforage';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 import { haversineMiles } from '../utils/geoDistance';
 
-const store = localforage.createInstance({ name: 'sea-store-info' });
+const BATCH_SIZE = 400;
 
-const KEYS = {
-  tankData:        'sea_tank_data',
-  ownerData:       'sea_owner_data',
-  tankUploadedAt:  'sea_tank_uploaded_at',
-  ownerUploadedAt: 'sea_owner_uploaded_at',
-  // legacy key — used as fallback on first load after previous version
-  legacyUploadedAt: 'sea_data_uploaded_at',
+const splitBatches = (arr) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += BATCH_SIZE) out.push(arr.slice(i, i + BATCH_SIZE));
+  return out;
+};
+
+const writeDataBatches = async (collectionName, records) => {
+  const batches = splitBatches(records);
+  await Promise.all(
+    batches.map((batch, i) =>
+      setDoc(doc(db, collectionName, `batch_${i}`), { records: batch })
+    )
+  );
+  return batches.length;
+};
+
+const readDataBatches = async (collectionName, batchCount) => {
+  if (!batchCount) return [];
+  const snapshots = await Promise.all(
+    Array.from({ length: batchCount }, (_, i) =>
+      getDoc(doc(db, collectionName, `batch_${i}`))
+    )
+  );
+  return snapshots.flatMap(s => (s.exists() ? s.data().records : []));
 };
 
 export const useStoreData = () => {
@@ -24,25 +42,35 @@ export const useStoreData = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [tanks, owners, tankTs, ownerTs, legacyTs] = await Promise.all([
-          store.getItem(KEYS.tankData),
-          store.getItem(KEYS.ownerData),
-          store.getItem(KEYS.tankUploadedAt),
-          store.getItem(KEYS.ownerUploadedAt),
-          store.getItem(KEYS.legacyUploadedAt),
+        const [tankMeta, ownerMeta] = await Promise.all([
+          getDoc(doc(db, 'metadata', 'tankData')),
+          getDoc(doc(db, 'metadata', 'ownerData')),
         ]);
-        if (tanks) {
+
+        const tankBatchCount  = tankMeta.exists()  ? (tankMeta.data().batchCount  ?? 0) : 0;
+        const ownerBatchCount = ownerMeta.exists() ? (ownerMeta.data().batchCount ?? 0) : 0;
+
+        const [tanks, owners] = await Promise.all([
+          readDataBatches('tankData',  tankBatchCount),
+          readDataBatches('ownerData', ownerBatchCount),
+        ]);
+
+        if (tanks.length > 0) {
           setTankData(tanks);
-          // fall back to legacy timestamp if per-type key not yet written
-          setTankUploadedAt(tankTs || legacyTs || null);
           setIsLoaded(true);
         }
-        if (owners) {
-          setOwnerData(owners);
-          setOwnerUploadedAt(ownerTs || legacyTs || null);
+        if (owners.length > 0) setOwnerData(owners);
+
+        if (tankMeta.exists()) {
+          const ts = tankMeta.data().uploadedAt;
+          setTankUploadedAt(ts?.toDate ? ts.toDate().toISOString() : ts);
         }
-      } catch {
-        // corrupted storage — start fresh
+        if (ownerMeta.exists()) {
+          const ts = ownerMeta.data().uploadedAt;
+          setOwnerUploadedAt(ts?.toDate ? ts.toDate().toISOString() : ts);
+        }
+      } catch (err) {
+        console.error('Firestore load failed:', err);
       } finally {
         setIsInitializing(false);
       }
@@ -50,27 +78,29 @@ export const useStoreData = () => {
   }, []);
 
   const saveTankData = useCallback(async (tanks) => {
-    const ts = new Date().toISOString();
+    const batchCount = await writeDataBatches('tankData', tanks);
+    await setDoc(doc(db, 'metadata', 'tankData'), {
+      uploadedAt:    serverTimestamp(),
+      recordCount:   tanks.length,
+      facilityCount: new Set(tanks.map(r => r.AI_ID)).size,
+      batchCount,
+    });
     setTankData(tanks);
-    setTankUploadedAt(ts);
+    setTankUploadedAt(new Date().toISOString());
     setIsLoaded(true);
-    await Promise.all([
-      store.setItem(KEYS.tankData,       tanks),
-      store.setItem(KEYS.tankUploadedAt, ts),
-    ]);
   }, []);
 
   const saveOwnerData = useCallback(async (owners) => {
-    const ts = new Date().toISOString();
+    const batchCount = await writeDataBatches('ownerData', owners);
+    await setDoc(doc(db, 'metadata', 'ownerData'), {
+      uploadedAt:  serverTimestamp(),
+      recordCount: owners.length,
+      batchCount,
+    });
     setOwnerData(owners);
-    setOwnerUploadedAt(ts);
-    await Promise.all([
-      store.setItem(KEYS.ownerData,       owners),
-      store.setItem(KEYS.ownerUploadedAt, ts),
-    ]);
+    setOwnerUploadedAt(new Date().toISOString());
   }, []);
 
-  // Grouped by AI_ID: [{ facility, tanks[] }]
   const groupByFacility = useCallback((rows) => {
     const map = {};
     rows.forEach((row) => {
@@ -95,19 +125,16 @@ export const useStoreData = () => {
     } else if (category === 'COUNTY') {
       results = tankData.filter((r) => (r.COUNTY || 'N/A') === term);
     } else if (category === 'OWNER_NAME') {
-      // Partial, case-insensitive — works for both text input and dropdown selection
       const lower = term.trim().toLowerCase();
       results = tankData.filter((r) =>
         (r.OWNER_NAME || '').toLowerCase().includes(lower)
       );
     } else if (category === 'TANK_STATUS_CODE') {
-      // All facilities that have at least one tank with this status
       const matchIds = new Set(
         tankData.filter((r) => r.TANK_STATUS_CODE?.trim() === term).map((r) => r.AI_ID)
       );
       results = tankData.filter((r) => matchIds.has(r.AI_ID));
     } else if (category === 'TANK_STATUS_COUNTY') {
-      // Facilities in the given county that have at least one tank with this status
       if (!term2) return [];
       const matchIds = new Set(
         tankData

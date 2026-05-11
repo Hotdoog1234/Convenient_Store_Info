@@ -10,23 +10,40 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Helper: only the named admin may perform this action ──────────────────
-    // Note: Firebase Auth normalises all emails to lowercase
     function isAdmin() {
       return request.auth != null
           && request.auth.token.email == 'robert_francis@shieldmw.com';
     }
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ── Tank data — all authenticated users read, only admin writes ───────────
+    match /tankData/{batchId} {
+      allow read:  if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── Owner data — all authenticated users read, only admin writes ──────────
+    match /ownerData/{batchId} {
+      allow read:  if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── Metadata — all authenticated users read, only admin writes ────────────
+    match /metadata/{docId} {
+      allow read:  if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // ── Access requests ───────────────────────────────────────────────────────
-    // Anyone (unauthenticated) may CREATE — that's the registration form.
-    // Only the admin may READ, UPDATE, or DELETE.
     match /accessRequests/{id} {
       allow create: if true;
       allow read, write: if isAdmin();
     }
 
     // ── Approved users ────────────────────────────────────────────────────────
-    // Admin can read/write everything.
-    // Each user may update ONLY their own lastSignIn field — nothing else.
     match /approvedUsers/{uid} {
       allow read, write: if isAdmin();
       allow update: if request.auth != null

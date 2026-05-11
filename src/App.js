@@ -14,7 +14,7 @@ import EmptyState   from './components/EmptyState';
 import LoginScreen  from './components/LoginScreen';
 import AdminPanel   from './components/AdminPanel';
 
-const ADMIN_EMAIL = 'robert_francis@shieldmw.com'; // Firebase normalises emails to lowercase
+const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
 
 const formatDate = (iso) => {
   if (!iso) return '';
@@ -27,8 +27,14 @@ const formatDate = (iso) => {
   }
 };
 
+const LoadingSpinner = ({ message = 'Loading…' }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div className="spinner" />
+    <p style={{ color: 'var(--color-text-secondary)', fontSize: 15, margin: 0 }}>{message}</p>
+  </div>
+);
+
 const App = () => {
-  // ── All hooks unconditionally at the top ──────────────────────────────────
   const [user,       setUser]       = useState(undefined);
   const [authReady,  setAuthReady]  = useState(false);
   const [results,    setResults]    = useState(null);
@@ -46,14 +52,12 @@ const App = () => {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && u.email?.toLowerCase() !== ADMIN_EMAIL) {
-        // Non-admin: check Firestore for disabled status
         try {
           const userDoc = await getDoc(doc(db, 'approvedUsers', u.uid));
           if (userDoc.exists() && userDoc.data().disabled) {
             await signOut(auth);
-            return; // setUser stays null → shows LoginScreen
+            return;
           }
-          // Record last sign-in time
           if (userDoc.exists()) {
             await updateDoc(doc(db, 'approvedUsers', u.uid), {
               lastSignIn: serverTimestamp(),
@@ -73,13 +77,11 @@ const App = () => {
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
-  // ── Conditional renders — all hooks already called above ─────────────────
-
   if (!authReady) {
     return (
       <div className="app-layout">
         <div className="upload-fullpage">
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
+          <LoadingSpinner />
         </div>
       </div>
     );
@@ -90,15 +92,14 @@ const App = () => {
   const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
   const handleLocateMe = (lat, lng)              => setResults(findNearest(lat, lng, 5));
 
-  const handleTankLoaded = (tankData) => {
-    saveTankData(tankData);
-    setShowUpload(false);
+  const handleTankLoaded = async (rows) => {
+    await saveTankData(rows);
     setResults(null);
+    // DataUpload shows success and lets admin close via its own Cancel/Close button
   };
 
-  const handleOwnerLoaded = (ownerData) => {
-    saveOwnerData(ownerData);
-    setShowUpload(false);
+  const handleOwnerLoaded = async (rows) => {
+    await saveOwnerData(rows);
   };
 
   const footer = (
@@ -112,7 +113,7 @@ const App = () => {
       <div className="app-layout">
         <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>Loading…</div>
+          <LoadingSpinner message="Loading data from Firestore…" />
         </div>
         {footer}
       </div>
@@ -120,6 +121,20 @@ const App = () => {
   }
 
   if (!isLoaded) {
+    if (!isAdmin) {
+      return (
+        <div className="app-layout">
+          <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+          <div className="upload-fullpage">
+            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 15 }}>
+              <p style={{ marginBottom: 8 }}>Data has not been loaded yet.</p>
+              <p style={{ margin: 0 }}>Please contact the administrator.</p>
+            </div>
+          </div>
+          {footer}
+        </div>
+      );
+    }
     return (
       <div className="app-layout">
         <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
@@ -137,7 +152,7 @@ const App = () => {
   return (
     <div className="app-layout">
       <Header
-        onUpdateData={() => setShowUpload(true)}
+        onUpdateData={isAdmin ? () => setShowUpload(true) : undefined}
         onSignOut={handleSignOut}
         isAdmin={isAdmin}
         onAdmin={() => setShowAdmin(true)}
