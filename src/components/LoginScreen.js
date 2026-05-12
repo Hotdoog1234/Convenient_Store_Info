@@ -4,33 +4,24 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { auth, db } from '../firebase';
 
-// EmailJS from environment variables
-const EMAILJS_SERVICE_ID    = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-const EMAILJS_NOTIFY_TPL    = process.env.REACT_APP_EMAILJS_NOTIFY_TEMPLATE;
-const EMAILJS_PUBLIC_KEY    = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
-const emailjsReady          = !!EMAILJS_SERVICE_ID && !!EMAILJS_NOTIFY_TPL && !!EMAILJS_PUBLIC_KEY;
+const EMAILJS_SERVICE_ID  = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+const EMAILJS_NOTIFY_TPL  = process.env.REACT_APP_EMAILJS_NOTIFY_TEMPLATE;
+const EMAILJS_PUBLIC_KEY  = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
+const emailjsReady        = !!EMAILJS_SERVICE_ID && !!EMAILJS_NOTIFY_TPL && !!EMAILJS_PUBLIC_KEY;
 
-if (!emailjsReady) {
-  console.warn('[LoginScreen] EmailJS not fully configured — admin notification emails will not send.',
-    { EMAILJS_SERVICE_ID: !!EMAILJS_SERVICE_ID, EMAILJS_NOTIFY_TPL: !!EMAILJS_NOTIFY_TPL, EMAILJS_PUBLIC_KEY: !!EMAILJS_PUBLIC_KEY });
-}
+const ADMIN_NOTIFY_EMAIL  = 'robert_francis@shieldmw.com';
 
-const ADMIN_NOTIFY_EMAIL    = 'robert_francis@shieldmw.com';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS   = 15 * 60 * 1000;
 
-// Rate-limiting: lock after this many consecutive failures
-const MAX_ATTEMPTS    = 5;
-const LOCKOUT_MS      = 15 * 60 * 1000; // 15 minutes
-
-// ── Input helpers ─────────────────────────────────────────────────────────
 const sanitizeText = (str) =>
   str.trim()
-     .replace(/<[^>]*>/g, '')      // strip HTML tags
-     .replace(/[<>"'&]/g, '')      // strip remaining dangerous chars
-     .slice(0, 120);               // max length
+     .replace(/<[^>]*>/g, '')
+     .replace(/[<>"'&]/g, '')
+     .slice(0, 120);
 
 const isValidEmail = (str) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
 
-// ── Friendly Firebase error messages ─────────────────────────────────────
 const friendlyError = (code) => {
   switch (code) {
     case 'auth/user-not-found':
@@ -44,6 +35,35 @@ const friendlyError = (code) => {
   }
 };
 
+// Step indicator shown during form submission
+const StepList = ({ steps }) => (
+  <div style={{ margin: '12px 0', fontSize: 13, lineHeight: 1.7 }}>
+    {steps.map((s, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 16, textAlign: 'center' }}>
+          {s.status === 'pending' && <span className="spinner spinner--sm" style={{ display: 'inline-block' }} />}
+          {s.status === 'ok'      && <span style={{ color: '#2d6a4f' }}>✓</span>}
+          {s.status === 'error'   && <span style={{ color: '#991b1b' }}>✕</span>}
+          {s.status === 'skip'    && <span style={{ color: '#999' }}>–</span>}
+        </span>
+        <span style={{
+          color: s.status === 'error' ? '#991b1b'
+               : s.status === 'ok'   ? '#2d6a4f'
+               : s.status === 'skip' ? '#999'
+               : 'var(--color-text)',
+        }}>
+          {s.label}
+          {s.detail && (
+            <span style={{ display: 'block', fontSize: 11, color: '#991b1b', marginLeft: 0 }}>
+              {s.detail}
+            </span>
+          )}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
 const LoginScreen = () => {
   const [mode,     setMode]     = useState('login');
   const [name,     setName]     = useState('');
@@ -52,113 +72,118 @@ const LoginScreen = () => {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState('');
+  const [steps,    setSteps]    = useState([]);
 
-  // Rate limiting state
-  const [failCount,    setFailCount]    = useState(0);
-  const [lockedUntil,  setLockedUntil]  = useState(null);
+  const [failCount,   setFailCount]   = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(null);
 
   const reset = (nextMode) => {
     setMode(nextMode);
     setName(''); setEmail(''); setPassword('');
-    setError(''); setSuccess('');
+    setError(''); setSuccess(''); setSteps([]);
   };
 
-  const isLockedOut = () => lockedUntil && Date.now() < lockedUntil;
-
+  const isLockedOut   = () => lockedUntil && Date.now() < lockedUntil;
   const lockoutMessage = () => {
     if (!lockedUntil) return '';
     const mins = Math.ceil((lockedUntil - Date.now()) / 60000);
     return `Too many failed attempts. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.`;
   };
 
-  // ── Login ────────────────────────────────────────────────────────────────
+  // ── Login ─────────────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
     if (isLockedOut()) { setError(lockoutMessage()); return; }
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!isValidEmail(trimmedEmail)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
+    if (!isValidEmail(trimmedEmail)) { setError('Please enter a valid email address.'); return; }
 
     setLoading(true); setError('');
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      setFailCount(0);
-      setLockedUntil(null);
-      // onAuthStateChanged in App.js takes over
+      setFailCount(0); setLockedUntil(null);
     } catch (err) {
       const next = failCount + 1;
       setFailCount(next);
       if (next >= MAX_ATTEMPTS) {
-        const until = Date.now() + LOCKOUT_MS;
-        setLockedUntil(until);
+        setLockedUntil(Date.now() + LOCKOUT_MS);
         setError(`Account locked after ${MAX_ATTEMPTS} failed attempts. Try again in 15 minutes.`);
       } else {
-        const remaining = MAX_ATTEMPTS - next;
-        setError(
-          friendlyError(err.code) +
-          (remaining > 0 ? ` (${remaining} attempt${remaining !== 1 ? 's' : ''} remaining)` : '')
-        );
+        const rem = MAX_ATTEMPTS - next;
+        setError(friendlyError(err.code) + (rem > 0 ? ` (${rem} attempt${rem !== 1 ? 's' : ''} remaining)` : ''));
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Register (access request only — no account created immediately) ───────
+  // ── Register ──────────────────────────────────────────────────────────────
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    // Sanitize all inputs
     const cleanName  = sanitizeText(name);
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!cleanName) {
-      setError('Please enter your full name.'); return;
-    }
-    if (!isValidEmail(cleanEmail)) {
-      setError('Please enter a valid email address.'); return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.'); return;
-    }
+    if (!cleanName)                { setError('Please enter your full name.'); return; }
+    if (!isValidEmail(cleanEmail)) { setError('Please enter a valid email address.'); return; }
+    if (password.length < 6)       { setError('Password must be at least 6 characters.'); return; }
 
-    setLoading(true); setError('');
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    setSteps([{ label: 'Saving request to Firestore…', status: 'pending' }]);
+
+    // ── Step 1: Firestore write ─────────────────────────────────────────────
+    let docRef;
     try {
-      // Save sanitized request to Firestore (password is NOT stored)
-      console.log('[LoginScreen] Writing access request to Firestore…', { name: cleanName, email: cleanEmail });
-      const docRef = await addDoc(collection(db, 'accessRequests'), {
+      docRef = await addDoc(collection(db, 'accessRequests'), {
         name:      cleanName,
         email:     cleanEmail,
         status:    'pending',
         timestamp: serverTimestamp(),
       });
-      console.log('[LoginScreen] Firestore write succeeded — doc ID:', docRef.id);
+      setSteps([{ label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
+                { label: 'Sending notification email…', status: 'pending' }]);
+    } catch (err) {
+      console.error('[Register] Firestore write failed:', err);
+      setSteps([{ label: 'Saving request to Firestore…', status: 'error',
+                  detail: `${err.code ?? ''} ${err.message}` }]);
+      setError('Could not save your request. Please try again.');
+      setLoading(false);
+      return;
+    }
 
-      // Notify admin via EmailJS
-      if (emailjsReady) {
-        console.log('[LoginScreen] Sending admin notification email to', ADMIN_NOTIFY_EMAIL);
+    // ── Step 2: EmailJS notification ────────────────────────────────────────
+    if (emailjsReady) {
+      try {
         await emailjs.send(
           EMAILJS_SERVICE_ID,
           EMAILJS_NOTIFY_TPL,
           { requester_name: cleanName, requester_email: cleanEmail, to_email: ADMIN_NOTIFY_EMAIL },
           EMAILJS_PUBLIC_KEY,
-        ).catch((err) => console.error('[LoginScreen] EmailJS send failed:', err));
-        console.log('[LoginScreen] Admin notification email sent.');
-      } else {
-        console.warn('[LoginScreen] Skipping admin email — REACT_APP_EMAILJS_NOTIFY_TEMPLATE is not set in .env');
+        );
+        setSteps([
+          { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
+          { label: `Notification sent to ${ADMIN_NOTIFY_EMAIL}`, status: 'ok' },
+        ]);
+      } catch (err) {
+        console.error('[Register] EmailJS send failed:', err);
+        setSteps([
+          { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
+          { label: 'Notification email failed (request still saved)', status: 'error',
+            detail: err.text ?? err.message ?? String(err) },
+        ]);
       }
-
-      setSuccess(`Request submitted for ${cleanEmail}. You'll receive an email once your account is approved.`);
-      setName(''); setEmail(''); setPassword('');
-    } catch (err) {
-      console.error('[LoginScreen] Access request failed:', err);
-      setError('Failed to submit request. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      setSteps([
+        { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
+        { label: 'Email notification skipped (NOTIFY_TEMPLATE not configured)', status: 'skip' },
+      ]);
     }
+
+    setSuccess(`Request submitted for ${cleanEmail}. You'll receive an email once your account is approved.`);
+    setName(''); setEmail(''); setPassword('');
+    setLoading(false);
   };
 
   return (
@@ -279,8 +304,11 @@ const LoginScreen = () => {
                 autoComplete="new-password"
               />
             </div>
-            {error   && <p className="login-error">{error}</p>}
+
+            {error && <p className="login-error">{error}</p>}
+            {steps.length > 0 && <StepList steps={steps} />}
             {success && <p className="login-success">{success}</p>}
+
             {!success && (
               <button className="btn-primary login-submit" type="submit" disabled={loading}>
                 {loading ? 'Submitting…' : 'Request Access'}
