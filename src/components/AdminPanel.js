@@ -223,32 +223,28 @@ const UsersTab = () => {
           <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Last Sign In</th>
             <th>Date Created</th>
-            <th>Status</th>
+            <th>Last Sign In</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map(u => {
-            const s = status[u.uid];
+            const s          = status[u.uid];
             const isDisabled = u.disabled;
+            const isAdmin    = u.email?.toLowerCase() === ADMIN_EMAIL;
+            const displayName = u.name || u.email;
             return (
               <tr key={u.uid} className={isDisabled ? 'admin-row--disabled' : ''}>
-                <td>{u.name}</td>
+                <td>{displayName}</td>
                 <td>{u.email}</td>
-                <td>{fmtDate(u.lastSignIn)}</td>
                 <td>{fmtDate(u.createdAt)}</td>
-                <td>
-                  <span className={`admin-badge ${isDisabled ? 'admin-badge--off' : 'admin-badge--on'}`}>
-                    {isDisabled ? 'Cancelled' : 'Active'}
-                  </span>
-                </td>
+                <td>{fmtDate(u.lastSignIn)}</td>
                 <td>
                   {s === 'working'   && <span className="admin-status">Working…</span>}
                   {s === 'cancelled' && <span className="admin-status admin-status--muted">Account cancelled</span>}
                   {s === 'error'     && <span className="admin-status admin-status--err">Error — retry</span>}
-                  {!s && !isDisabled && (
+                  {!s && !isDisabled && !isAdmin && (
                     <button
                       className="btn-outline admin-btn-sm admin-btn-deny"
                       onClick={() => handleCancel(u)}
@@ -256,6 +252,7 @@ const UsersTab = () => {
                       Cancel Account
                     </button>
                   )}
+                  {isAdmin && <span className="admin-status admin-status--muted">Admin</span>}
                 </td>
               </tr>
             );

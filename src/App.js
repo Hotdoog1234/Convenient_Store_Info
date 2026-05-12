@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './styles/global.css';
 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 import { useStoreData } from './hooks/useStoreData';
@@ -70,20 +70,40 @@ const App = () => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u && u.email?.toLowerCase() !== ADMIN_EMAIL) {
-        try {
-          const userDoc = await getDoc(doc(db, 'approvedUsers', u.uid));
-          if (userDoc.exists() && userDoc.data().disabled) {
-            await signOut(auth);
-            return;
+      if (u) {
+        const ref = doc(db, 'approvedUsers', u.uid);
+        if (u.email?.toLowerCase() === ADMIN_EMAIL) {
+          // Keep admin's own approvedUsers record current so they appear in Active Users tab
+          try {
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+              await setDoc(ref, {
+                uid:       u.uid,
+                name:      u.displayName || '',
+                email:     u.email,
+                createdAt: serverTimestamp(),
+                lastSignIn: serverTimestamp(),
+                disabled:  false,
+              });
+            } else {
+              await updateDoc(ref, { lastSignIn: serverTimestamp() });
+            }
+          } catch (e) {
+            console.error('Admin record update failed:', e);
           }
-          if (userDoc.exists()) {
-            await updateDoc(doc(db, 'approvedUsers', u.uid), {
-              lastSignIn: serverTimestamp(),
-            });
+        } else {
+          try {
+            const userDoc = await getDoc(ref);
+            if (userDoc.exists() && userDoc.data().disabled) {
+              await signOut(auth);
+              return;
+            }
+            if (userDoc.exists()) {
+              await updateDoc(ref, { lastSignIn: serverTimestamp() });
+            }
+          } catch (e) {
+            console.error('Firestore user check failed:', e);
           }
-        } catch (e) {
-          console.error('Firestore user check failed:', e);
         }
       }
       setUser(u);

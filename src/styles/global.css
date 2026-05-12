@@ -850,6 +850,18 @@ body {
 .admin-badge--on  { background: var(--color-primary-pale); color: var(--color-primary-dark); }
 .admin-badge--off { background: #fee2e2; color: #991b1b; }
 
+/* Owner search info notice */
+.search-info-notice {
+  margin: 10px 0 0;
+  padding: 7px 12px;
+  background: var(--color-primary-pale);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--color-primary-dark);
+  line-height: 1.45;
+}
+
 /* Loading spinner */
 @keyframes spin {
   to { transform: rotate(360deg); }

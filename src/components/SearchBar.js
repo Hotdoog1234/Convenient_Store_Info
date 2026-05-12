@@ -244,6 +244,12 @@ const SearchBar = ({ onSearch, onLocateMe, getUniqueValues }) => {
       {geoStatus === 'error' && (
         <p className="locate-error">{geoError}</p>
       )}
+
+      {selected?.type === 'owner-dual' && (
+        <p className="search-info-notice">
+          Owner data may take a moment to load on first search. Please be patient.
+        </p>
+      )}
     </div>
   );
 };
