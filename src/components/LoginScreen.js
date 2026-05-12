@@ -9,6 +9,9 @@ const EMAILJS_NOTIFY_TPL  = process.env.REACT_APP_EMAILJS_NOTIFY_TEMPLATE;
 const EMAILJS_PUBLIC_KEY  = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
 const emailjsReady        = !!EMAILJS_SERVICE_ID && !!EMAILJS_NOTIFY_TPL && !!EMAILJS_PUBLIC_KEY;
 
+// Initialise EmailJS once at module load so the public key is always set
+if (EMAILJS_PUBLIC_KEY) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
 const ADMIN_NOTIFY_EMAIL  = 'robert_francis@shieldmw.com';
 
 const MAX_ATTEMPTS = 5;
@@ -160,7 +163,6 @@ const LoginScreen = () => {
           EMAILJS_SERVICE_ID,
           EMAILJS_NOTIFY_TPL,
           { requester_name: cleanName, requester_email: cleanEmail, to_email: ADMIN_NOTIFY_EMAIL },
-          EMAILJS_PUBLIC_KEY,
         );
         setSteps([
           { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
@@ -168,10 +170,10 @@ const LoginScreen = () => {
         ]);
       } catch (err) {
         console.error('[Register] EmailJS send failed:', err);
+        const detail = [err.status, err.text, err.message].filter(Boolean).join(' — ') || String(err);
         setSteps([
           { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
-          { label: 'Notification email failed (request still saved)', status: 'error',
-            detail: err.text ?? err.message ?? String(err) },
+          { label: 'Notification email failed (request still saved)', status: 'error', detail },
         ]);
       }
     } else {
