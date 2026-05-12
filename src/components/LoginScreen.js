@@ -10,7 +10,12 @@ const EMAILJS_NOTIFY_TPL    = process.env.REACT_APP_EMAILJS_NOTIFY_TEMPLATE;
 const EMAILJS_PUBLIC_KEY    = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
 const emailjsReady          = !!EMAILJS_SERVICE_ID && !!EMAILJS_NOTIFY_TPL && !!EMAILJS_PUBLIC_KEY;
 
-const ADMIN_NOTIFY_EMAIL    = 'rfortner@shieldenvironmental.com';
+if (!emailjsReady) {
+  console.warn('[LoginScreen] EmailJS not fully configured — admin notification emails will not send.',
+    { EMAILJS_SERVICE_ID: !!EMAILJS_SERVICE_ID, EMAILJS_NOTIFY_TPL: !!EMAILJS_NOTIFY_TPL, EMAILJS_PUBLIC_KEY: !!EMAILJS_PUBLIC_KEY });
+}
+
+const ADMIN_NOTIFY_EMAIL    = 'robert_francis@shieldmw.com';
 
 // Rate-limiting: lock after this many consecutive failures
 const MAX_ATTEMPTS    = 5;
@@ -123,28 +128,34 @@ const LoginScreen = () => {
     setLoading(true); setError('');
     try {
       // Save sanitized request to Firestore (password is NOT stored)
-      await addDoc(collection(db, 'accessRequests'), {
+      console.log('[LoginScreen] Writing access request to Firestore…', { name: cleanName, email: cleanEmail });
+      const docRef = await addDoc(collection(db, 'accessRequests'), {
         name:      cleanName,
         email:     cleanEmail,
         status:    'pending',
         timestamp: serverTimestamp(),
       });
+      console.log('[LoginScreen] Firestore write succeeded — doc ID:', docRef.id);
 
-      // Notify admin
+      // Notify admin via EmailJS
       if (emailjsReady) {
+        console.log('[LoginScreen] Sending admin notification email to', ADMIN_NOTIFY_EMAIL);
         await emailjs.send(
           EMAILJS_SERVICE_ID,
           EMAILJS_NOTIFY_TPL,
           { requester_name: cleanName, requester_email: cleanEmail, to_email: ADMIN_NOTIFY_EMAIL },
           EMAILJS_PUBLIC_KEY,
-        ).catch(() => {}); // non-blocking — request is saved regardless
+        ).catch((err) => console.error('[LoginScreen] EmailJS send failed:', err));
+        console.log('[LoginScreen] Admin notification email sent.');
+      } else {
+        console.warn('[LoginScreen] Skipping admin email — REACT_APP_EMAILJS_NOTIFY_TEMPLATE is not set in .env');
       }
 
       setSuccess(`Request submitted for ${cleanEmail}. You'll receive an email once your account is approved.`);
       setName(''); setEmail(''); setPassword('');
     } catch (err) {
+      console.error('[LoginScreen] Access request failed:', err);
       setError('Failed to submit request. Please try again.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
