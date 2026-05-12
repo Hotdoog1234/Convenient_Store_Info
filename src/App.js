@@ -27,28 +27,28 @@ const formatDate = (iso) => {
   }
 };
 
-const LoadingScreen = ({ status, error }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, maxWidth: 400, textAlign: 'center' }}>
-    {!error && <div className="spinner" />}
-    {error ? (
-      <div style={{
-        background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8,
-        padding: '16px 20px', color: '#991b1b', fontSize: 14, lineHeight: 1.5,
-      }}>
-        <strong style={{ display: 'block', marginBottom: 6 }}>Connection Error</strong>
-        {error}
-        <button
-          onClick={() => window.location.reload()}
-          style={{ display: 'block', margin: '12px auto 0', padding: '6px 16px',
-            background: '#991b1b', color: '#fff', border: 'none', borderRadius: 6,
-            cursor: 'pointer', fontSize: 13 }}
-        >
-          Retry
-        </button>
-      </div>
-    ) : (
-      <p style={{ color: 'var(--color-text-secondary)', fontSize: 15, margin: 0 }}>{status}</p>
-    )}
+const LoadingSpinner = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div className="spinner" />
+  </div>
+);
+
+const ErrorMessage = ({ message }) => (
+  <div style={{
+    background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8,
+    padding: '16px 20px', color: '#991b1b', fontSize: 14, lineHeight: 1.5,
+    maxWidth: 360, textAlign: 'center',
+  }}>
+    <strong style={{ display: 'block', marginBottom: 6 }}>Unable to load data</strong>
+    {message}
+    <button
+      onClick={() => window.location.reload()}
+      style={{ display: 'block', margin: '12px auto 0', padding: '6px 16px',
+        background: '#991b1b', color: '#fff', border: 'none', borderRadius: 6,
+        cursor: 'pointer', fontSize: 13 }}
+    >
+      Retry
+    </button>
   </div>
 );
 
@@ -61,7 +61,7 @@ const App = () => {
 
   const {
     isInitializing, isLoaded,
-    loadingStatus, loadError,
+    loadError,
     tankUploadedAt, ownerUploadedAt,
     saveTankData, saveOwnerData,
     search, findNearest, getUniqueValues, findOwner,
@@ -101,7 +101,7 @@ const App = () => {
     return (
       <div className="app-layout">
         <div className="upload-fullpage">
-          <LoadingScreen status="Connecting to Firebase…" />
+          <LoadingSpinner />
         </div>
       </div>
     );
@@ -133,7 +133,7 @@ const App = () => {
       <div className="app-layout">
         <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
-          <LoadingScreen status={loadingStatus} error={loadError} />
+          {loadError ? <ErrorMessage message={loadError} /> : <LoadingSpinner />}
         </div>
         {footer}
       </div>
@@ -146,7 +146,7 @@ const App = () => {
       <div className="app-layout">
         <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
-          <LoadingScreen error={loadError} />
+          <ErrorMessage message={loadError} />
         </div>
         {footer}
       </div>
@@ -160,29 +160,19 @@ const App = () => {
         <div className="app-layout">
           <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
           <div className="upload-fullpage">
-            <div style={{ textAlign: 'center', maxWidth: 360 }}>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: 15, marginBottom: 8 }}>
-                {loadingStatus || 'Data has not been loaded yet.'}
-              </p>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, margin: 0 }}>
-                Please contact the administrator.
-              </p>
+            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 15 }}>
+              <p style={{ marginBottom: 8 }}>Data has not been loaded yet.</p>
+              <p style={{ margin: 0 }}>Please contact the administrator.</p>
             </div>
           </div>
           {footer}
         </div>
       );
     }
-    // Admin sees upload screen with status message explaining why
     return (
       <div className="app-layout">
         <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
-          {loadingStatus && (
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, marginBottom: 20, textAlign: 'center' }}>
-              {loadingStatus}
-            </p>
-          )}
           <DataUpload
             onTankLoaded={handleTankLoaded}
             onOwnerLoaded={handleOwnerLoaded}
