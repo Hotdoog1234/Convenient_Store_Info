@@ -38,28 +38,35 @@ export const useStoreData = (userReady = false) => {
   const [ownerUploadedAt, setOwnerUploadedAt] = useState(null);
   const [isLoaded,        setIsLoaded]        = useState(false);
   const [isInitializing,  setIsInitializing]  = useState(true);
+  const [loadingStatus,   setLoadingStatus]   = useState('Connecting to Firebase…');
+  const [loadError,       setLoadError]       = useState(null);
 
   useEffect(() => {
-    // Wait until Firebase Auth has confirmed a logged-in user before
-    // fetching — Firestore rules deny unauthenticated reads.
     if (!userReady) return;
 
     (async () => {
       try {
-        console.log('[useStoreData] Starting Firestore fetch…');
+        setLoadingStatus('Connecting to Firebase…');
+        setLoadError(null);
 
         const [tankMeta, ownerMeta] = await Promise.all([
           getDoc(doc(db, 'metadata', 'tankData')),
           getDoc(doc(db, 'metadata', 'ownerData')),
         ]);
 
-        console.log('[useStoreData] metadata/tankData exists:', tankMeta.exists(), tankMeta.exists() ? tankMeta.data() : '(no doc)');
-        console.log('[useStoreData] metadata/ownerData exists:', ownerMeta.exists(), ownerMeta.exists() ? ownerMeta.data() : '(no doc)');
-
         const tankBatchCount  = tankMeta.exists()  ? (tankMeta.data().batchCount  ?? 0) : 0;
         const ownerBatchCount = ownerMeta.exists() ? (ownerMeta.data().batchCount ?? 0) : 0;
 
-        console.log(`[useStoreData] Fetching batches — tankBatches: ${tankBatchCount}, ownerBatches: ${ownerBatchCount}`);
+        console.log('[useStoreData] metadata/tankData:', tankMeta.exists() ? tankMeta.data() : '(no doc)');
+        console.log('[useStoreData] metadata/ownerData:', ownerMeta.exists() ? ownerMeta.data() : '(no doc)');
+        console.log(`[useStoreData] batchCounts — tank: ${tankBatchCount}, owner: ${ownerBatchCount}`);
+
+        if (tankBatchCount === 0) {
+          setLoadingStatus('No data found in Firestore — tank data has not been uploaded yet.');
+          return;
+        }
+
+        setLoadingStatus(`Loading tank data… (${tankBatchCount} batch${tankBatchCount !== 1 ? 'es' : ''})`);
 
         const [tanks, owners] = await Promise.all([
           readDataBatches('tankData',  tankBatchCount),
@@ -68,14 +75,14 @@ export const useStoreData = (userReady = false) => {
 
         console.log(`[useStoreData] Fetch complete — tanks: ${tanks.length}, owners: ${owners.length}`);
 
-        if (tanks.length === 0) {
-          console.warn('[useStoreData] No tank data returned from Firestore. batchCount was:', tankBatchCount);
-        }
-
         if (tanks.length > 0) {
           setTankData(tanks);
           setIsLoaded(true);
+          setLoadingStatus(`Loading complete — ${tanks.length.toLocaleString()} tank records loaded`);
+        } else {
+          setLoadingStatus(`No tank records returned from Firestore (batchCount was ${tankBatchCount}).`);
         }
+
         if (owners.length > 0) setOwnerData(owners);
 
         if (tankMeta.exists()) {
@@ -88,6 +95,8 @@ export const useStoreData = (userReady = false) => {
         }
       } catch (err) {
         console.error('[useStoreData] Firestore load failed:', err);
+        setLoadError(`Firebase error: ${err.message}`);
+        setLoadingStatus('');
       } finally {
         setIsInitializing(false);
       }
@@ -198,6 +207,8 @@ export const useStoreData = (userReady = false) => {
   return {
     isInitializing,
     isLoaded,
+    loadingStatus,
+    loadError,
     tankUploadedAt,
     ownerUploadedAt,
     saveTankData,
