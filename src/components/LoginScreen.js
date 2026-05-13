@@ -4,15 +4,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { auth, db } from '../firebase';
 
-const EMAILJS_SERVICE_ID       = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-const EMAILJS_APPROVAL_TEMPLATE = process.env.REACT_APP_EMAILJS_APPROVAL_TEMPLATE;
-const EMAILJS_PUBLIC_KEY       = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
-const emailjsReady             = !!EMAILJS_SERVICE_ID && !!EMAILJS_APPROVAL_TEMPLATE && !!EMAILJS_PUBLIC_KEY;
-
-// Initialise EmailJS once at module load so the public key is always set
-if (EMAILJS_PUBLIC_KEY) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-
-const ADMIN_NOTIFY_EMAIL  = 'robert_francis@shieldmw.com';
+const ADMIN_NOTIFY_EMAIL = 'robert_francis@shieldmw.com';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 15 * 60 * 1000;
@@ -76,8 +68,6 @@ const LoginScreen = () => {
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState('');
   const [steps,    setSteps]    = useState([]);
-  const [debugResult, setDebugResult] = useState(null);
-  const [debugLoading, setDebugLoading] = useState(false);
 
   const [failCount,   setFailCount]   = useState(0);
   const [lockedUntil, setLockedUntil] = useState(null);
@@ -88,35 +78,7 @@ const LoginScreen = () => {
     setError(''); setSuccess(''); setSteps([]);
   };
 
-  const isLockedOut   = () => lockedUntil && Date.now() < lockedUntil;
-
-  const handleEmailJsDebug = async () => {
-    setDebugLoading(true);
-    setDebugResult(null);
-    try {
-      emailjs.init('QEnhUmZl49thzCGKH');
-      const response = await emailjs.send(
-        'service_1q3jqtp',
-        'template_pcfokga',
-        {
-          to_email:        'robert_francis@shieldmw.com',
-          requester_name:  'Test User',
-          requester_email: 'test@test.com',
-        }
-      );
-      setDebugResult({ ok: true, status: response.status, text: response.text, full: JSON.stringify(response, null, 2) });
-    } catch (err) {
-      setDebugResult({
-        ok: false,
-        status:  err.status,
-        text:    err.text,
-        message: err.message,
-        full:    JSON.stringify({ status: err.status, text: err.text, message: err.message, name: err.name, stack: err.stack }, null, 2),
-      });
-    } finally {
-      setDebugLoading(false);
-    }
-  };
+  const isLockedOut    = () => lockedUntil && Date.now() < lockedUntil;
   const lockoutMessage = () => {
     if (!lockedUntil) return '';
     const mins = Math.ceil((lockedUntil - Date.now()) / 60000);
@@ -186,34 +148,28 @@ const LoginScreen = () => {
       return;
     }
 
-    // ── Step 2: EmailJS admin notification (reuses approval template) ──────
-    if (emailjsReady) {
-      try {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID,
-          EMAILJS_APPROVAL_TEMPLATE,
-          {
-            to_name:      'Robert Francis',
-            to_email:     'robert_francis@shieldmw.com',
-            temp_password: `New access request from: ${cleanName} (${cleanEmail})`,
-          },
-        );
-        setSteps([
-          { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
-          { label: `Notification sent to ${ADMIN_NOTIFY_EMAIL}`, status: 'ok' },
-        ]);
-      } catch (err) {
-        console.error('[Register] EmailJS send failed:', err);
-        const detail = [err.status, err.text, err.message].filter(Boolean).join(' — ') || String(err);
-        setSteps([
-          { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
-          { label: 'Notification email failed (request still saved)', status: 'error', detail },
-        ]);
-      }
-    } else {
+    // ── Step 2: EmailJS admin notification ──────────────────────────────────
+    try {
+      emailjs.init('QEnhUmZl49thzCGKH');
+      await emailjs.send(
+        'service_1q3jqtp',
+        'template_pcfokga',
+        {
+          to_email:        ADMIN_NOTIFY_EMAIL,
+          requester_name:  cleanName,
+          requester_email: cleanEmail,
+        },
+      );
       setSteps([
         { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
-        { label: 'Email notification skipped (EmailJS not configured)', status: 'skip' },
+        { label: `Notification sent to ${ADMIN_NOTIFY_EMAIL}`, status: 'ok' },
+      ]);
+    } catch (err) {
+      console.error('[Register] EmailJS send failed:', err);
+      const detail = [err.status, err.text, err.message].filter(Boolean).join(' — ') || String(err);
+      setSteps([
+        { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
+        { label: 'Notification email failed (request still saved)', status: 'error', detail },
       ]);
     }
 
@@ -352,33 +308,6 @@ const LoginScreen = () => {
             )}
           </form>
         )}
-
-        {/* ── EmailJS debug panel (temporary) ── */}
-        <div style={{ marginTop: 24, padding: '12px 16px', background: '#f8f8f8', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}>
-          <p style={{ margin: '0 0 8px', fontWeight: 600, color: '#555' }}>EmailJS Debug</p>
-          <button
-            type="button"
-            onClick={handleEmailJsDebug}
-            disabled={debugLoading}
-            style={{ padding: '6px 14px', background: '#444', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}
-          >
-            {debugLoading ? 'Sending…' : 'Test template_pcfokga'}
-          </button>
-          {debugResult && (
-            <div style={{ marginTop: 10 }}>
-              <p style={{ margin: '0 0 4px', fontWeight: 600, color: debugResult.ok ? '#2d6a4f' : '#991b1b' }}>
-                {debugResult.ok ? '✓ SUCCESS' : '✕ FAILED'}
-              </p>
-              <pre style={{
-                margin: 0, padding: '8px 10px', background: '#fff', border: '1px solid #ccc',
-                borderRadius: 4, fontSize: 11, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                color: debugResult.ok ? '#2d6a4f' : '#991b1b',
-              }}>
-                {debugResult.full}
-              </pre>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
