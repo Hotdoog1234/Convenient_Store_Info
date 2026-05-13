@@ -29,3 +29,6 @@ yarn-error.log*
 
 # Claude Code worktree files
 .claude/
+
+# Service account key — never commit
+scripts/serviceAccountKey.json
