@@ -56,11 +56,36 @@ const createUserAccount = async (email, password) => {
   }
 };
 
+// ── Step list for approve progress ────────────────────────────────────────
+const ApproveSteps = ({ steps }) => (
+  <div style={{ fontSize: 12, lineHeight: 1.8 }}>
+    {steps.map((s, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 14, textAlign: 'center', flexShrink: 0 }}>
+          {s.status === 'pending' && <span className="spinner spinner--sm" style={{ display: 'inline-block' }} />}
+          {s.status === 'ok'      && <span style={{ color: '#2d6a4f' }}>✓</span>}
+          {s.status === 'error'   && <span style={{ color: '#991b1b' }}>✕</span>}
+        </span>
+        <span style={{
+          color: s.status === 'error' ? '#991b1b'
+               : s.status === 'ok'   ? '#2d6a4f'
+               : 'var(--color-text)',
+        }}>
+          {s.label}
+          {s.detail && (
+            <span style={{ display: 'block', fontSize: 11, color: '#991b1b' }}>{s.detail}</span>
+          )}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
 // ── Access Requests tab ────────────────────────────────────────────────────
 const RequestsTab = () => {
   const [requests, setRequests] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  // rowState shape: { [id]: { s: 'working'|'approved'|'denied'|'error', tempPassword?: string } }
+  // rowState shape: { [id]: { s: 'steps'|'approved'|'denied'|'error', steps?: array } }
   const [rowState, setRowState] = useState({});
 
   useEffect(() => {
@@ -81,16 +106,40 @@ const RequestsTab = () => {
     return unsub;
   }, []);
 
-  const setRow = (id, s, extra = {}) =>
-    setRowState(prev => ({ ...prev, [id]: { s, ...extra } }));
+  const setRow = (id, update) =>
+    setRowState(prev => ({ ...prev, [id]: { ...prev[id], ...update } }));
+
+  const setStep = (id, index, patch) =>
+    setRowState(prev => {
+      const steps = [...(prev[id]?.steps ?? [])];
+      steps[index] = { ...steps[index], ...patch };
+      return { ...prev, [id]: { ...prev[id], steps } };
+    });
 
   const handleApprove = async (req) => {
-    setRow(req.id, 'working');
-    try {
-      // Create the account with a random internal password the user will never know —
-      // they'll set their own via the Firebase password reset email sent below.
-      const newUser = await createUserAccount(req.email, randomInternalPassword());
+    const initialSteps = [
+      { label: 'Creating Firebase account…',    status: 'pending' },
+      { label: 'Saving to database…',           status: 'idle' },
+      { label: 'Sending password setup email…', status: 'idle' },
+      { label: 'Sending approval email…',       status: 'idle' },
+    ];
+    setRow(req.id, { s: 'steps', steps: initialSteps });
 
+    // Step 0 — create Firebase Auth account
+    let newUser;
+    try {
+      newUser = await createUserAccount(req.email, randomInternalPassword());
+      setStep(req.id, 0, { status: 'ok' });
+    } catch (err) {
+      const detail = err.message ?? String(err);
+      setStep(req.id, 0, { status: 'error', detail });
+      console.error('Approve — create account failed:', err);
+      return;
+    }
+
+    // Step 1 — write Firestore records
+    setStep(req.id, 1, { status: 'pending' });
+    try {
       await setDoc(doc(db, 'approvedUsers', newUser.uid), {
         uid:        newUser.uid,
         name:       req.name,
@@ -99,23 +148,42 @@ const RequestsTab = () => {
         lastSignIn: null,
         disabled:   false,
       });
-
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
+      setStep(req.id, 1, { status: 'ok' });
+    } catch (err) {
+      const detail = err.message ?? String(err);
+      setStep(req.id, 1, { status: 'error', detail });
+      console.error('Approve — Firestore write failed:', err);
+      return;
+    }
 
-      // Send Firebase's password setup email so the user sets their own password securely
+    // Step 2 — Firebase password setup email
+    setStep(req.id, 2, { status: 'pending' });
+    try {
       await sendPasswordResetEmail(auth, req.email);
+      setStep(req.id, 2, { status: 'ok' });
+    } catch (err) {
+      const detail = err.message ?? String(err);
+      setStep(req.id, 2, { status: 'error', detail });
+      console.error('Approve — password reset email failed:', err);
+      // non-fatal: continue to approval email
+    }
 
-      // Approval notification email (no temp password)
+    // Step 3 — EmailJS approval notification
+    setStep(req.id, 3, { status: 'pending' });
+    try {
       await sendEmail(EMAILJS_APPROVAL, {
         to_email: req.email,
         to_name:  req.name,
       });
-
-      setRow(req.id, 'approved');
+      setStep(req.id, 3, { status: 'ok', label: 'Approval email sent ✓' });
     } catch (err) {
-      console.error('Approve failed:', err);
-      setRow(req.id, 'error');
+      const detail = [err.status, err.text, err.message].filter(Boolean).join(' — ') || String(err);
+      setStep(req.id, 3, { status: 'error', detail });
+      console.error('Approve — approval email failed:', err);
     }
+
+    setRow(req.id, { s: 'approved' });
   };
 
   const handleDeny = async (req) => {
@@ -164,10 +232,16 @@ const RequestsTab = () => {
                 <td>{req.email}</td>
                 <td>{fmtDate(req.timestamp)}</td>
                 <td>
-                  {s === 'working' && <span className="admin-status">Working…</span>}
-                  {s === 'approved' && <span className="admin-status admin-status--ok">✓ Approved — password setup email sent</span>}
+                  {s === 'steps' && <ApproveSteps steps={row.steps ?? []} />}
+                  {s === 'approved' && (
+                    <div>
+                      <ApproveSteps steps={row.steps ?? []} />
+                      <span className="admin-status admin-status--ok" style={{ marginTop: 4, display: 'block' }}>
+                        Done!
+                      </span>
+                    </div>
+                  )}
                   {s === 'denied'  && <span className="admin-status admin-status--muted">✕ Denied</span>}
-                  {s === 'error'   && <span className="admin-status admin-status--err">Error — retry</span>}
                   {!s && (
                     <div className="admin-actions">
                       <button
