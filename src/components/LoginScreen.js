@@ -4,10 +4,10 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { auth, db } from '../firebase';
 
-const EMAILJS_SERVICE_ID  = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-const EMAILJS_NOTIFY_TPL  = process.env.REACT_APP_EMAILJS_NOTIFY_TEMPLATE;
-const EMAILJS_PUBLIC_KEY  = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
-const emailjsReady        = !!EMAILJS_SERVICE_ID && !!EMAILJS_NOTIFY_TPL && !!EMAILJS_PUBLIC_KEY;
+const EMAILJS_SERVICE_ID       = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+const EMAILJS_APPROVAL_TEMPLATE = process.env.REACT_APP_EMAILJS_APPROVAL_TEMPLATE;
+const EMAILJS_PUBLIC_KEY       = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
+const emailjsReady             = !!EMAILJS_SERVICE_ID && !!EMAILJS_APPROVAL_TEMPLATE && !!EMAILJS_PUBLIC_KEY;
 
 // Initialise EmailJS once at module load so the public key is always set
 if (EMAILJS_PUBLIC_KEY) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -156,13 +156,17 @@ const LoginScreen = () => {
       return;
     }
 
-    // ── Step 2: EmailJS notification ────────────────────────────────────────
+    // ── Step 2: EmailJS admin notification (reuses approval template) ──────
     if (emailjsReady) {
       try {
         await emailjs.send(
           EMAILJS_SERVICE_ID,
-          EMAILJS_NOTIFY_TPL,
-          { requester_name: cleanName, requester_email: cleanEmail, to_email: ADMIN_NOTIFY_EMAIL },
+          EMAILJS_APPROVAL_TEMPLATE,
+          {
+            to_name:   'Robert Francis',
+            to_email:  ADMIN_NOTIFY_EMAIL,
+            temp_password: `New access request from: ${cleanName} (${cleanEmail})`,
+          },
         );
         setSteps([
           { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
@@ -179,7 +183,7 @@ const LoginScreen = () => {
     } else {
       setSteps([
         { label: `Request saved (ID: ${docRef.id})`, status: 'ok' },
-        { label: 'Email notification skipped (NOTIFY_TEMPLATE not configured)', status: 'skip' },
+        { label: 'Email notification skipped (EmailJS not configured)', status: 'skip' },
       ]);
     }
 
