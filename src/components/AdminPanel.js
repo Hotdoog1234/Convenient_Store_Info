@@ -14,16 +14,18 @@ import {
 import emailjs from '@emailjs/browser';
 import { auth, db, firebaseConfig } from '../firebase';
 
-// EmailJS credentials from environment variables
-const EMAILJS_SERVICE_ID        = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-const EMAILJS_APPROVAL_TEMPLATE = process.env.REACT_APP_EMAILJS_APPROVAL_TEMPLATE;
-const EMAILJS_DENIAL_TEMPLATE   = process.env.REACT_APP_EMAILJS_DENIAL_TEMPLATE;
-const EMAILJS_PUBLIC_KEY        = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
+const EMAILJS_PUBLIC_KEY = 'QEnhUmZl49thzCGKH';
+const EMAILJS_SERVICE   = 'service_1q3jqtp';
+const EMAILJS_APPROVAL  = 'template_5i06wqv';
+const EMAILJS_DENIAL    = 'template_wfj2tmb';
 
 // Admin email — must match Firebase Auth and Firestore rules exactly
 const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
 
-const emailjsReady = !!EMAILJS_SERVICE_ID && !!EMAILJS_PUBLIC_KEY;
+const sendEmail = (templateId, params) => {
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+  return emailjs.send(EMAILJS_SERVICE, templateId, params);
+};
 
 const generateTempPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -96,13 +98,11 @@ const RequestsTab = () => {
 
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
 
-      if (emailjsReady) {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID, EMAILJS_APPROVAL_TEMPLATE,
-          { to_name: req.name, to_email: req.email, temp_password: tempPassword },
-          EMAILJS_PUBLIC_KEY
-        );
-      }
+      await sendEmail(EMAILJS_APPROVAL, {
+        to_email:      req.email,
+        to_name:       req.name,
+        temp_password: tempPassword,
+      });
 
       setRowStatus(req.id, 'approved');
     } catch (err) {
@@ -116,13 +116,10 @@ const RequestsTab = () => {
     try {
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'denied' });
 
-      if (emailjsReady) {
-        await emailjs.send(
-          EMAILJS_SERVICE_ID, EMAILJS_DENIAL_TEMPLATE,
-          { to_name: req.name, to_email: req.email },
-          EMAILJS_PUBLIC_KEY
-        ).catch(() => {}); // denial email is optional — don't block on failure
-      }
+      sendEmail(EMAILJS_DENIAL, {
+        to_email: req.email,
+        to_name:  req.name,
+      }).catch(() => {}); // denial email is best-effort — don't block on failure
 
       setRowStatus(req.id, 'denied');
     } catch (err) {
