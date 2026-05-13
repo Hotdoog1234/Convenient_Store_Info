@@ -163,8 +163,8 @@ const LoginScreen = () => {
           EMAILJS_SERVICE_ID,
           EMAILJS_APPROVAL_TEMPLATE,
           {
-            to_name:   'Robert Francis',
-            to_email:  ADMIN_NOTIFY_EMAIL,
+            to_name:      'Robert Francis',
+            to_email:     'robert_francis@shieldmw.com',
             temp_password: `New access request from: ${cleanName} (${cleanEmail})`,
           },
         );

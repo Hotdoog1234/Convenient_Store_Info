@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   collection, query, orderBy, onSnapshot,
-  doc, updateDoc, setDoc, serverTimestamp, where,
+  doc, updateDoc, setDoc, serverTimestamp,
 } from 'firebase/firestore';
 import {
   initializeApp, deleteApp,
@@ -62,13 +62,18 @@ const RequestsTab = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'accessRequests'),
-      where('status', '==', 'pending'),
       orderBy('timestamp', 'desc')
     );
     const unsub = onSnapshot(q, (snap) => {
-      setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(r => r.status === 'pending');
+      setRequests(pending);
       setLoading(false);
-    }, () => setLoading(false));
+    }, (err) => {
+      console.error('[AdminPanel] accessRequests query failed:', err);
+      setLoading(false);
+    });
     return unsub;
   }, []);
 
@@ -133,6 +138,9 @@ const RequestsTab = () => {
 
   return (
     <div className="admin-table-wrap">
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--color-text-secondary)' }}>
+        {requests.length} pending {requests.length === 1 ? 'request' : 'requests'}
+      </p>
       <table className="admin-table">
         <thead>
           <tr>
