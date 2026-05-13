@@ -118,10 +118,10 @@ const RequestsTab = () => {
 
   const handleApprove = async (req) => {
     const initialSteps = [
-      { label: 'Creating Firebase account…',    status: 'pending' },
-      { label: 'Saving to database…',           status: 'idle' },
-      { label: 'Sending password setup email…', status: 'idle' },
-      { label: 'Sending approval email…',       status: 'idle' },
+      { label: `Creating Firebase account for ${req.email}…`,          status: 'pending' },
+      { label: 'Saving to database…',                                   status: 'idle' },
+      { label: `Sending password setup email to ${req.email}…`,        status: 'idle' },
+      { label: `Sending approval notification to ${req.email}…`,       status: 'idle' },
     ];
     setRow(req.id, { s: 'steps', steps: initialSteps });
 
@@ -161,11 +161,11 @@ const RequestsTab = () => {
     setStep(req.id, 2, { status: 'pending' });
     try {
       await sendPasswordResetEmail(auth, req.email);
-      setStep(req.id, 2, { status: 'ok' });
+      setStep(req.id, 2, { status: 'ok', label: `Password setup email sent to ${req.email} ✓` });
     } catch (err) {
-      const detail = err.message ?? String(err);
+      const detail = `${err.code ?? ''} — ${err.message ?? String(err)}`.trim().replace(/^—\s*/, '');
       setStep(req.id, 2, { status: 'error', detail });
-      console.error('Approve — password reset email failed:', err);
+      console.error('Approve — password reset email failed:', err.code, err.message, err);
       // non-fatal: continue to approval email
     }
 
