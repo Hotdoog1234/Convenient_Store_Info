@@ -10,14 +10,15 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import emailjs from '@emailjs/browser';
 import { auth, db, firebaseConfig } from '../firebase';
 
 const EMAILJS_PUBLIC_KEY = 'QEnhUmZl49thzCGKH';
-const EMAILJS_SERVICE   = 'service_1q3jqtp';
-const EMAILJS_APPROVAL  = 'template_5i06wqv';
-const EMAILJS_DENIAL    = 'template_wfj2tmb';
+const EMAILJS_SERVICE    = 'service_1q3jqtp';
+const EMAILJS_APPROVAL   = 'template_5i06wqv';
+const EMAILJS_DENIAL     = 'template_wfj2tmb';
 
 // Admin email — must match Firebase Auth and Firestore rules exactly
 const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
@@ -59,7 +60,8 @@ const createUserAccount = async (email, password) => {
 const RequestsTab = () => {
   const [requests, setRequests] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [status,   setStatus]   = useState({}); // { [id]: 'working'|'done'|'error' }
+  // rowState shape: { [id]: { s: 'working'|'approved'|'denied'|'error', tempPassword?: string } }
+  const [rowState, setRowState] = useState({});
 
   useEffect(() => {
     const q = query(
@@ -79,10 +81,11 @@ const RequestsTab = () => {
     return unsub;
   }, []);
 
-  const setRowStatus = (id, s) => setStatus(prev => ({ ...prev, [id]: s }));
+  const setRow = (id, s, extra = {}) =>
+    setRowState(prev => ({ ...prev, [id]: { s, ...extra } }));
 
   const handleApprove = async (req) => {
-    setRowStatus(req.id, 'working');
+    setRow(req.id, 'working');
     try {
       const tempPassword = generateTempPassword();
       const newUser = await createUserAccount(req.email, tempPassword);
@@ -98,33 +101,35 @@ const RequestsTab = () => {
 
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
 
+      // NOTE: If this email still goes to the wrong address, open the EmailJS dashboard,
+      // edit template_5i06wqv, and ensure "To Email" is set to {{to_email}} not a static address.
       await sendEmail(EMAILJS_APPROVAL, {
         to_email:      req.email,
         to_name:       req.name,
         temp_password: tempPassword,
       });
 
-      setRowStatus(req.id, 'approved');
+      setRow(req.id, 'approved', { tempPassword });
     } catch (err) {
       console.error('Approve failed:', err);
-      setRowStatus(req.id, 'error');
+      setRow(req.id, 'error');
     }
   };
 
   const handleDeny = async (req) => {
-    setRowStatus(req.id, 'working');
+    setRow(req.id, 'working');
     try {
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'denied' });
 
       sendEmail(EMAILJS_DENIAL, {
         to_email: req.email,
         to_name:  req.name,
-      }).catch(() => {}); // denial email is best-effort — don't block on failure
+      }).catch(() => {}); // best-effort — don't block on failure
 
-      setRowStatus(req.id, 'denied');
+      setRow(req.id, 'denied');
     } catch (err) {
       console.error('Deny failed:', err);
-      setRowStatus(req.id, 'error');
+      setRow(req.id, 'error');
     }
   };
 
@@ -149,7 +154,8 @@ const RequestsTab = () => {
         </thead>
         <tbody>
           {requests.map(req => {
-            const s = status[req.id];
+            const row = rowState[req.id] ?? {};
+            const s   = row.s;
             return (
               <tr key={req.id}>
                 <td>{req.name}</td>
@@ -157,9 +163,25 @@ const RequestsTab = () => {
                 <td>{fmtDate(req.timestamp)}</td>
                 <td>
                   {s === 'working' && <span className="admin-status">Working…</span>}
-                  {s === 'approved' && <span className="admin-status admin-status--ok">✓ Approved</span>}
-                  {s === 'denied'   && <span className="admin-status admin-status--muted">✕ Denied</span>}
-                  {s === 'error'    && <span className="admin-status admin-status--err">Error — retry</span>}
+                  {s === 'approved' && (
+                    <div>
+                      <span className="admin-status admin-status--ok">✓ Approved</span>
+                      {row.tempPassword && (
+                        <div style={{
+                          marginTop: 6, padding: '5px 8px',
+                          background: '#f0fdf4', border: '1px solid #86efac',
+                          borderRadius: 4, fontSize: 12,
+                        }}>
+                          <span style={{ color: '#166534', fontWeight: 600 }}>Temp password: </span>
+                          <code style={{ fontFamily: 'monospace', letterSpacing: 1 }}>
+                            {row.tempPassword}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {s === 'denied'  && <span className="admin-status admin-status--muted">✕ Denied</span>}
+                  {s === 'error'   && <span className="admin-status admin-status--err">Error — retry</span>}
                   {!s && (
                     <div className="admin-actions">
                       <button
@@ -190,6 +212,7 @@ const RequestsTab = () => {
 const UsersTab = () => {
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
+  // status shape: { [uid]: 'working'|'cancelled'|'resetting'|'reset-sent'|'error' }
   const [status,  setStatus]  = useState({});
 
   useEffect(() => {
@@ -216,6 +239,18 @@ const UsersTab = () => {
     }
   }, []);
 
+  const handleResetPassword = useCallback(async (u) => {
+    if (!window.confirm(`Send a password reset email to ${u.email}?`)) return;
+    setStatus(prev => ({ ...prev, [u.uid]: 'resetting' }));
+    try {
+      await sendPasswordResetEmail(auth, u.email);
+      setStatus(prev => ({ ...prev, [u.uid]: 'reset-sent' }));
+    } catch (err) {
+      console.error('Reset password failed:', err);
+      setStatus(prev => ({ ...prev, [u.uid]: 'error' }));
+    }
+  }, []);
+
   if (loading) return <div className="admin-loading">Loading users…</div>;
   if (users.length === 0) return (
     <div className="admin-empty">No approved users yet.</div>
@@ -235,9 +270,9 @@ const UsersTab = () => {
         </thead>
         <tbody>
           {users.map(u => {
-            const s          = status[u.uid];
-            const isDisabled = u.disabled;
-            const isAdmin    = u.email?.toLowerCase() === ADMIN_EMAIL;
+            const s           = status[u.uid];
+            const isDisabled  = u.disabled;
+            const isAdmin     = u.email?.toLowerCase() === ADMIN_EMAIL;
             const displayName = u.name || u.email;
             return (
               <tr key={u.uid} className={isDisabled ? 'admin-row--disabled' : ''}>
@@ -246,16 +281,30 @@ const UsersTab = () => {
                 <td>{fmtDate(u.createdAt)}</td>
                 <td>{fmtDate(u.lastSignIn)}</td>
                 <td>
-                  {s === 'working'   && <span className="admin-status">Working…</span>}
-                  {s === 'cancelled' && <span className="admin-status admin-status--muted">Account cancelled</span>}
-                  {s === 'error'     && <span className="admin-status admin-status--err">Error — retry</span>}
+                  {s === 'working'    && <span className="admin-status">Working…</span>}
+                  {s === 'resetting'  && <span className="admin-status">Sending reset…</span>}
+                  {s === 'cancelled'  && <span className="admin-status admin-status--muted">Account cancelled</span>}
+                  {s === 'reset-sent' && (
+                    <span className="admin-status admin-status--ok">
+                      ✓ Reset email sent to {u.email}
+                    </span>
+                  )}
+                  {s === 'error'      && <span className="admin-status admin-status--err">Error — retry</span>}
                   {!s && !isDisabled && !isAdmin && (
-                    <button
-                      className="btn-outline admin-btn-sm admin-btn-deny"
-                      onClick={() => handleCancel(u)}
-                    >
-                      Cancel Account
-                    </button>
+                    <div className="admin-actions">
+                      <button
+                        className="btn-outline admin-btn-sm"
+                        onClick={() => handleResetPassword(u)}
+                      >
+                        Reset Password
+                      </button>
+                      <button
+                        className="btn-outline admin-btn-sm admin-btn-deny"
+                        onClick={() => handleCancel(u)}
+                      >
+                        Cancel Account
+                      </button>
+                    </div>
                   )}
                   {isAdmin && <span className="admin-status admin-status--muted">Admin</span>}
                 </td>
