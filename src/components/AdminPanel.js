@@ -28,9 +28,9 @@ const sendEmail = (templateId, params) => {
   return emailjs.send(EMAILJS_SERVICE, templateId, params);
 };
 
-const generateTempPassword = () => {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  return Array.from({ length: 12 }, () =>
+const randomInternalPassword = () => {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  return Array.from({ length: 20 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join('');
 };
@@ -87,8 +87,9 @@ const RequestsTab = () => {
   const handleApprove = async (req) => {
     setRow(req.id, 'working');
     try {
-      const tempPassword = generateTempPassword();
-      const newUser = await createUserAccount(req.email, tempPassword);
+      // Create the account with a random internal password the user will never know —
+      // they'll set their own via the Firebase password reset email sent below.
+      const newUser = await createUserAccount(req.email, randomInternalPassword());
 
       await setDoc(doc(db, 'approvedUsers', newUser.uid), {
         uid:        newUser.uid,
@@ -101,15 +102,16 @@ const RequestsTab = () => {
 
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
 
-      // NOTE: If this email still goes to the wrong address, open the EmailJS dashboard,
-      // edit template_5i06wqv, and ensure "To Email" is set to {{to_email}} not a static address.
+      // Send Firebase's password setup email so the user sets their own password securely
+      await sendPasswordResetEmail(auth, req.email);
+
+      // Approval notification email (no temp password)
       await sendEmail(EMAILJS_APPROVAL, {
-        to_email:      req.email,
-        to_name:       req.name,
-        temp_password: tempPassword,
+        to_email: req.email,
+        to_name:  req.name,
       });
 
-      setRow(req.id, 'approved', { tempPassword });
+      setRow(req.id, 'approved');
     } catch (err) {
       console.error('Approve failed:', err);
       setRow(req.id, 'error');
@@ -163,23 +165,7 @@ const RequestsTab = () => {
                 <td>{fmtDate(req.timestamp)}</td>
                 <td>
                   {s === 'working' && <span className="admin-status">Working…</span>}
-                  {s === 'approved' && (
-                    <div>
-                      <span className="admin-status admin-status--ok">✓ Approved</span>
-                      {row.tempPassword && (
-                        <div style={{
-                          marginTop: 6, padding: '5px 8px',
-                          background: '#f0fdf4', border: '1px solid #86efac',
-                          borderRadius: 4, fontSize: 12,
-                        }}>
-                          <span style={{ color: '#166534', fontWeight: 600 }}>Temp password: </span>
-                          <code style={{ fontFamily: 'monospace', letterSpacing: 1 }}>
-                            {row.tempPassword}
-                          </code>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {s === 'approved' && <span className="admin-status admin-status--ok">✓ Approved — password setup email sent</span>}
                   {s === 'denied'  && <span className="admin-status admin-status--muted">✕ Denied</span>}
                   {s === 'error'   && <span className="admin-status admin-status--err">Error — retry</span>}
                   {!s && (
@@ -239,18 +225,6 @@ const UsersTab = () => {
     }
   }, []);
 
-  const handleResetPassword = useCallback(async (u) => {
-    if (!window.confirm(`Send a password reset email to ${u.email}?`)) return;
-    setStatus(prev => ({ ...prev, [u.uid]: 'resetting' }));
-    try {
-      await sendPasswordResetEmail(auth, u.email);
-      setStatus(prev => ({ ...prev, [u.uid]: 'reset-sent' }));
-    } catch (err) {
-      console.error('Reset password failed:', err);
-      setStatus(prev => ({ ...prev, [u.uid]: 'error' }));
-    }
-  }, []);
-
   if (loading) return <div className="admin-loading">Loading users…</div>;
   if (users.length === 0) return (
     <div className="admin-empty">No approved users yet.</div>
@@ -281,30 +255,16 @@ const UsersTab = () => {
                 <td>{fmtDate(u.createdAt)}</td>
                 <td>{fmtDate(u.lastSignIn)}</td>
                 <td>
-                  {s === 'working'    && <span className="admin-status">Working…</span>}
-                  {s === 'resetting'  && <span className="admin-status">Sending reset…</span>}
-                  {s === 'cancelled'  && <span className="admin-status admin-status--muted">Account cancelled</span>}
-                  {s === 'reset-sent' && (
-                    <span className="admin-status admin-status--ok">
-                      ✓ Reset email sent to {u.email}
-                    </span>
-                  )}
-                  {s === 'error'      && <span className="admin-status admin-status--err">Error — retry</span>}
+                  {s === 'working'   && <span className="admin-status">Working…</span>}
+                  {s === 'cancelled' && <span className="admin-status admin-status--muted">Account cancelled</span>}
+                  {s === 'error'     && <span className="admin-status admin-status--err">Error — retry</span>}
                   {!s && !isDisabled && !isAdmin && (
-                    <div className="admin-actions">
-                      <button
-                        className="btn-outline admin-btn-sm"
-                        onClick={() => handleResetPassword(u)}
-                      >
-                        Reset Password
-                      </button>
-                      <button
-                        className="btn-outline admin-btn-sm admin-btn-deny"
-                        onClick={() => handleCancel(u)}
-                      >
-                        Cancel Account
-                      </button>
-                    </div>
+                    <button
+                      className="btn-outline admin-btn-sm admin-btn-deny"
+                      onClick={() => handleCancel(u)}
+                    >
+                      Cancel Account
+                    </button>
                   )}
                   {isAdmin && <span className="admin-status admin-status--muted">Admin</span>}
                 </td>

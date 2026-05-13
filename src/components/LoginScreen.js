@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import emailjs from '@emailjs/browser';
 import { auth, db } from '../firebase';
@@ -60,14 +60,14 @@ const StepList = ({ steps }) => (
 );
 
 const LoginScreen = () => {
-  const [mode,     setMode]     = useState('login');
-  const [name,     setName]     = useState('');
-  const [email,    setEmail]    = useState('');
+  const [mode,    setMode]    = useState('login');
+  const [name,    setName]    = useState('');
+  const [email,   setEmail]   = useState('');
   const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [success,  setSuccess]  = useState('');
-  const [steps,    setSteps]    = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const [success, setSuccess] = useState('');
+  const [steps,   setSteps]   = useState([]);
 
   const [failCount,   setFailCount]   = useState(0);
   const [lockedUntil, setLockedUntil] = useState(null);
@@ -112,6 +112,24 @@ const LoginScreen = () => {
     }
   };
 
+  // ── Forgot password ────────────────────────────────────────────────────────
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(trimmedEmail)) { setError('Please enter a valid email address.'); return; }
+
+    setLoading(true); setError(''); setSuccess('');
+    try {
+      await sendPasswordResetEmail(auth, trimmedEmail);
+      setSuccess('Password reset email sent — check your inbox.');
+    } catch (err) {
+      // Always show a generic success to avoid leaking whether the account exists
+      setSuccess('Password reset email sent — check your inbox.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Register ──────────────────────────────────────────────────────────────
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -121,7 +139,6 @@ const LoginScreen = () => {
 
     if (!cleanName)                { setError('Please enter your full name.'); return; }
     if (!isValidEmail(cleanEmail)) { setError('Please enter a valid email address.'); return; }
-    if (password.length < 6)       { setError('Password must be at least 6 characters.'); return; }
 
     setLoading(true);
     setError('');
@@ -174,7 +191,7 @@ const LoginScreen = () => {
     }
 
     setSuccess(`Request submitted for ${cleanEmail}. You'll receive an email once your account is approved.`);
-    setName(''); setEmail(''); setPassword('');
+    setName(''); setEmail('');
     setLoading(false);
   };
 
@@ -237,6 +254,13 @@ const LoginScreen = () => {
                 autoComplete="current-password"
                 maxLength={128}
               />
+              <button
+                type="button"
+                className="login-forgot-link"
+                onClick={() => reset('forgot')}
+              >
+                Forgot Password?
+              </button>
             </div>
             {error && <p className="login-error">{error}</p>}
             <button
@@ -249,12 +273,50 @@ const LoginScreen = () => {
           </form>
         )}
 
+        {/* ── Forgot password form ── */}
+        {mode === 'forgot' && (
+          <form className="login-form" onSubmit={handleForgotPassword} noValidate>
+            <p className="login-register-note">
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
+            <div className="login-field">
+              <label className="section-label">Email</label>
+              <input
+                className="form-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                maxLength={254}
+                autoFocus
+              />
+            </div>
+            {error   && <p className="login-error">{error}</p>}
+            {success && <p className="login-success">{success}</p>}
+            {!success && (
+              <button className="btn-primary login-submit" type="submit" disabled={loading}>
+                {loading ? 'Sending…' : 'Send Reset Email'}
+              </button>
+            )}
+            <button
+              type="button"
+              className="login-forgot-link"
+              style={{ marginTop: 10, display: 'block', textAlign: 'center' }}
+              onClick={() => reset('login')}
+            >
+              Back to Sign In
+            </button>
+          </form>
+        )}
+
         {/* ── Register form ── */}
         {mode === 'register' && (
           <form className="login-form" onSubmit={handleRegister} noValidate>
             <p className="login-register-note">
               Fill in your details below. An administrator will review your request
-              and create your account.
+              and you'll receive an email to set up your password once approved.
             </p>
             <div className="login-field">
               <label className="section-label">Full Name</label>
@@ -280,20 +342,6 @@ const LoginScreen = () => {
                 required
                 autoComplete="email"
                 maxLength={254}
-              />
-            </div>
-            <div className="login-field">
-              <label className="section-label">Desired Password</label>
-              <input
-                className="form-input"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                maxLength={128}
-                autoComplete="new-password"
               />
             </div>
 
