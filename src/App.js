@@ -70,7 +70,12 @@ const App = () => {
   } = useStoreData(authReady && !!user);
 
   useEffect(() => {
+    // Safety net: if onAuthStateChanged never fires (e.g. iOS WebView network delay),
+    // mark auth ready after 5s so the UI doesn't stay gated forever.
+    const timeout = setTimeout(() => setAuthReady(true), 5000);
+
     const unsub = onAuthStateChanged(auth, async (u) => {
+      clearTimeout(timeout);
       if (u) {
         const ref = doc(db, 'approvedUsers', u.uid);
         if (u.email?.toLowerCase() === ADMIN_EMAIL) {
@@ -110,7 +115,7 @@ const App = () => {
       setUser(u);
       setAuthReady(true);
     });
-    return unsub;
+    return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
   // ── Real-time block check — signs out cancelled users immediately ──────────
@@ -129,17 +134,8 @@ const App = () => {
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
-  // ── Auth not yet resolved ─────────────────────────────────────────────────
-  if (!authReady) {
-    return (
-      <div className="app-layout">
-        <div className="upload-fullpage">
-          <LoadingSpinner />
-        </div>
-      </div>
-    );
-  }
-
+  // Show login screen immediately — no spinner while waiting for Firebase Auth.
+  // authReady gates data fetching; the login screen handles the not-yet-resolved state.
   if (!user) return (
     <LoginScreen cancelledMessage={wasCancelled
       ? 'Your account has been cancelled. Please contact the administrator.'
