@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  collection, query, orderBy, onSnapshot,
-  doc, updateDoc, setDoc, serverTimestamp,
+  collection, query, where, orderBy, onSnapshot,
+  doc, getDocs, updateDoc, setDoc, deleteDoc, serverTimestamp,
 } from 'firebase/firestore';
 import {
   initializeApp, deleteApp,
@@ -118,36 +118,66 @@ const RequestsTab = () => {
 
   const handleApprove = async (req) => {
     const initialSteps = [
-      { label: `Creating Firebase account for ${req.email}…`,          status: 'pending' },
-      { label: 'Saving to database…',                                   status: 'idle' },
-      { label: `Sending password setup email to ${req.email}…`,        status: 'idle' },
-      { label: `Sending approval notification to ${req.email}…`,       status: 'idle' },
+      { label: `Creating Firebase account for ${req.email}…`,    status: 'pending' },
+      { label: 'Saving to database…',                             status: 'idle' },
+      { label: `Sending password setup email to ${req.email}…`,  status: 'idle' },
+      { label: `Sending approval notification to ${req.email}…`, status: 'idle' },
     ];
     setRow(req.id, { s: 'steps', steps: initialSteps });
 
-    // Step 0 — create Firebase Auth account
-    let newUser;
+    // Step 0 — create Firebase Auth account (or detect previously-cancelled account)
+    let uid;
+    let isReactivation = false;
+
     try {
-      newUser = await createUserAccount(req.email, randomInternalPassword());
+      const newUser = await createUserAccount(req.email, randomInternalPassword());
+      uid = newUser.uid;
       setStep(req.id, 0, { status: 'ok' });
     } catch (err) {
-      const detail = err.message ?? String(err);
-      setStep(req.id, 0, { status: 'error', detail });
-      console.error('Approve — create account failed:', err);
-      return;
+      if (err.code === 'auth/email-already-in-use') {
+        // Previously cancelled user re-applying — find their existing UID
+        setStep(req.id, 0, { status: 'pending', label: `Account exists — looking up ${req.email}…` });
+        try {
+          const snap = await getDocs(
+            query(collection(db, 'approvedUsers'), where('email', '==', req.email))
+          );
+          if (snap.empty) throw new Error('Existing account not found in database.');
+          uid = snap.docs[0].id;
+          isReactivation = true;
+          setStep(req.id, 0, { status: 'ok', label: `Re-activating existing account for ${req.email} ✓` });
+        } catch (lookupErr) {
+          setStep(req.id, 0, { status: 'error', detail: lookupErr.message });
+          console.error('Approve — re-activation lookup failed:', lookupErr);
+          return;
+        }
+      } else {
+        setStep(req.id, 0, { status: 'error', detail: err.message ?? String(err) });
+        console.error('Approve — create account failed:', err);
+        return;
+      }
     }
 
     // Step 1 — write Firestore records
     setStep(req.id, 1, { status: 'pending' });
     try {
-      await setDoc(doc(db, 'approvedUsers', newUser.uid), {
-        uid:        newUser.uid,
-        name:       req.name,
-        email:      req.email,
-        createdAt:  serverTimestamp(),
-        lastSignIn: null,
-        disabled:   false,
-      });
+      if (isReactivation) {
+        // Remove block and re-enable existing approvedUsers record
+        await deleteDoc(doc(db, 'blockedUsers', uid));
+        await updateDoc(doc(db, 'approvedUsers', uid), {
+          disabled:   false,
+          name:       req.name,
+          lastSignIn: null,
+        });
+      } else {
+        await setDoc(doc(db, 'approvedUsers', uid), {
+          uid,
+          name:       req.name,
+          email:      req.email,
+          createdAt:  serverTimestamp(),
+          lastSignIn: null,
+          disabled:   false,
+        });
+      }
       await updateDoc(doc(db, 'accessRequests', req.id), { status: 'approved' });
       setStep(req.id, 1, { status: 'ok' });
     } catch (err) {

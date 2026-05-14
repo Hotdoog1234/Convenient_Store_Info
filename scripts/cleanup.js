@@ -98,6 +98,30 @@ async function deleteCollection(collectionName) {
   console.log(`  Deleted ${count} document${count !== 1 ? 's' : ''}.`);
 }
 
+async function deleteBlockedAuthAccounts() {
+  console.log('\n── Firebase Auth: deleting blocked user accounts ────────');
+  const snap = await db.collection('blockedUsers').get();
+  if (snap.empty) { console.log('  No blocked users found.'); return; }
+
+  let deleted = 0;
+  for (const docSnap of snap.docs) {
+    const uid   = docSnap.id;
+    const email = docSnap.data().email ?? '(unknown)';
+    try {
+      await auth.deleteUser(uid);
+      console.log(`  DELETED Auth account: ${email} [${uid}]`);
+      deleted++;
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        console.log(`  SKIP (already deleted): ${email} [${uid}]`);
+      } else {
+        console.error(`  ERROR deleting ${email}: ${err.message}`);
+      }
+    }
+  }
+  console.log(`\n  Done — ${deleted} Auth account(s) deleted`);
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 (async () => {
@@ -105,6 +129,8 @@ async function deleteCollection(collectionName) {
   console.log(`Keeping: ${KEEP_EMAIL}`);
 
   try {
+    // Delete Auth accounts for blocked users before wiping Firestore
+    await deleteBlockedAuthAccounts();
     await deleteAllUsersExcept(KEEP_EMAIL);
     for (const col of COLLECTIONS) {
       await deleteCollection(col);
