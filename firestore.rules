@@ -52,6 +52,12 @@ service cloud.firestore {
                          .affectedKeys().hasOnly(['lastSignIn']);
     }
 
+    // ── Blocked users — users can read their own doc, only admin writes ──────
+    match /blockedUsers/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
     // ── Deny everything else ──────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

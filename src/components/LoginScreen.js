@@ -59,7 +59,7 @@ const StepList = ({ steps }) => (
   </div>
 );
 
-const LoginScreen = () => {
+const LoginScreen = ({ cancelledMessage = null }) => {
   const [mode,    setMode]    = useState('login');
   const [name,    setName]    = useState('');
   const [email,   setEmail]   = useState('');
@@ -207,6 +207,16 @@ const LoginScreen = () => {
           <h1 className="login-app-name">Shield UST App</h1>
           <p className="login-app-sub">Kentucky Underground Storage Tank Database</p>
         </div>
+
+        {cancelledMessage && (
+          <div style={{
+            margin: '0 0 16px', padding: '10px 14px',
+            background: '#fef2f2', border: '1px solid #fca5a5',
+            borderRadius: 8, fontSize: 13, color: '#991b1b', lineHeight: 1.5,
+          }}>
+            {cancelledMessage}
+          </div>
+        )}
 
         <div className="login-tabs">
           <button

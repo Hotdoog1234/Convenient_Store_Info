@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './styles/global.css';
 
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 import { useStoreData } from './hooks/useStoreData';
@@ -53,11 +53,12 @@ const ErrorMessage = ({ message }) => (
 );
 
 const App = () => {
-  const [user,       setUser]       = useState(undefined);
-  const [authReady,  setAuthReady]  = useState(false);
-  const [results,    setResults]    = useState(null);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showAdmin,  setShowAdmin]  = useState(false);
+  const [user,         setUser]         = useState(undefined);
+  const [authReady,    setAuthReady]    = useState(false);
+  const [results,      setResults]      = useState(null);
+  const [showUpload,   setShowUpload]   = useState(false);
+  const [showAdmin,    setShowAdmin]    = useState(false);
+  const [wasCancelled, setWasCancelled] = useState(false);
 
   const {
     isInitializing, isLoaded,
@@ -112,7 +113,19 @@ const App = () => {
     return unsub;
   }, []);
 
-  const handleSignOut = () => { setShowAdmin(false); signOut(auth); };
+  // ── Real-time block check — signs out cancelled users immediately ──────────
+  useEffect(() => {
+    if (!user || user.email?.toLowerCase() === ADMIN_EMAIL) return;
+    const unsub = onSnapshot(doc(db, 'blockedUsers', user.uid), (snap) => {
+      if (snap.exists()) {
+        setWasCancelled(true);
+        signOut(auth);
+      }
+    });
+    return unsub;
+  }, [user]);
+
+  const handleSignOut = () => { setShowAdmin(false); setWasCancelled(false); signOut(auth); };
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
@@ -127,7 +140,12 @@ const App = () => {
     );
   }
 
-  if (!user) return <LoginScreen />;
+  if (!user) return (
+    <LoginScreen cancelledMessage={wasCancelled
+      ? 'Your account has been cancelled. Please contact the administrator.'
+      : null}
+    />
+  );
 
   const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
   const handleLocateMe = (lat, lng)              => setResults(findNearest(lat, lng, 5));

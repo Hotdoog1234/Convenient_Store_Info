@@ -291,6 +291,12 @@ const UsersTab = () => {
     if (!window.confirm(`Cancel account for ${u.email}? They will be signed out immediately.`)) return;
     setStatus(prev => ({ ...prev, [u.uid]: 'working' }));
     try {
+      // Write to blockedUsers so the real-time listener in App.js signs them out instantly
+      await setDoc(doc(db, 'blockedUsers', u.uid), {
+        uid:         u.uid,
+        email:       u.email,
+        cancelledAt: serverTimestamp(),
+      });
       await updateDoc(doc(db, 'approvedUsers', u.uid), { disabled: true });
       setStatus(prev => ({ ...prev, [u.uid]: 'cancelled' }));
     } catch (err) {
