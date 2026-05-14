@@ -22,7 +22,7 @@ const fs    = require('fs');
 
 const KEY_PATH    = path.join(__dirname, 'serviceAccountKey.json');
 const KEEP_EMAIL  = 'robert_francis@shieldmw.com';
-const COLLECTIONS = ['accessRequests', 'approvedUsers'];
+const COLLECTIONS = ['accessRequests', 'approvedUsers', 'blockedUsers'];
 
 // ── Preflight check ────────────────────────────────────────────────────────
 if (!fs.existsSync(KEY_PATH)) {
