@@ -136,6 +136,7 @@ const SearchBar = ({ onSearch, onLocateMe, getUniqueValues }) => {
                 value={term}
                 onChange={(e) => setTerm(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTextSubmit(e); }}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               />
               <button type="submit" className="btn-primary">Search</button>
             </>
@@ -165,6 +166,7 @@ const SearchBar = ({ onSearch, onLocateMe, getUniqueValues }) => {
                 value={ownerText}
                 onChange={(e) => setOwnerText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleOwnerTextSubmit(e); }}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               />
               <button
                 type="button"
