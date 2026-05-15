@@ -13,6 +13,7 @@ import DataUpload   from './components/DataUpload';
 import EmptyState   from './components/EmptyState';
 import LoginScreen  from './components/LoginScreen';
 import AdminPanel   from './components/AdminPanel';
+import SplashScreen from './components/SplashScreen';
 
 const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
 
@@ -53,12 +54,18 @@ const ErrorMessage = ({ message }) => (
 );
 
 const App = () => {
+  const [showSplash,   setShowSplash]   = useState(true);
   const [user,         setUser]         = useState(undefined);
   const [authReady,    setAuthReady]    = useState(false);
   const [results,      setResults]      = useState(null);
   const [showUpload,   setShowUpload]   = useState(false);
   const [showAdmin,    setShowAdmin]    = useState(false);
   const [wasCancelled, setWasCancelled] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   const {
     isInitializing, isLoaded,
@@ -133,6 +140,8 @@ const App = () => {
   const handleSignOut = () => { setShowAdmin(false); setWasCancelled(false); signOut(auth); };
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
+
+  if (showSplash) return <SplashScreen />;
 
   // Show login screen immediately — no spinner while waiting for Firebase Auth.
   // authReady gates data fetching; the login screen handles the not-yet-resolved state.
