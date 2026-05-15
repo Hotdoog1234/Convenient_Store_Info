@@ -635,7 +635,9 @@ input, select, textarea { font-size: 16px; }
     gap: 8px;
   }
   .header-logo {
-    display: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
   }
   .header-title {
     font-size: 14px;
