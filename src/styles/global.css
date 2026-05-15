@@ -360,11 +360,12 @@ body {
 .tank-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 24px 20px;
+  width: 100%;
+  padding: 0 0 20px;
 }
 
 .tank-table {
-  min-width: 420px;
+  width: auto;
   border-collapse: collapse;
   font-size: 13px;
   margin-top: 16px;
@@ -382,8 +383,12 @@ body {
   background: var(--color-bg);
   font-weight: 500;
   color: var(--color-text);
-  width: 220px;
+  min-width: 160px;
   white-space: nowrap;
+}
+
+.tank-table td {
+  min-width: 120px;
 }
 
 .tank-table tr:nth-child(even) td { background: #fafaf8; }
@@ -627,9 +632,7 @@ body {
     gap: 8px;
   }
   .header-logo {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    display: none;
   }
   .header-title {
     font-size: 14px;
@@ -702,21 +705,20 @@ body {
   .facility-summary-item:last-child { border-bottom: none; }
   .facility-summary-item--wide { flex: unset; }
 
-  /* Tank table — make it scroll horizontally with smaller text */
+  /* Tank table — scroll within the card */
   .tank-table-wrap {
-    padding: 0 10px 14px;
-    -webkit-overflow-scrolling: touch;
+    padding: 0 0 14px;
   }
   .tank-table {
     font-size: 12px;
-    min-width: 420px;
   }
   .tank-table th {
-    width: 140px;
+    min-width: 160px;
     font-size: 11px;
     padding: 6px 8px;
   }
   .tank-table td {
+    min-width: 120px;
     padding: 6px 8px;
   }
 
