@@ -15,17 +15,20 @@ const Header = ({ onUpdateData, onSignOut, onAdmin, isAdmin }) => (
     <div className="header-actions">
       {onUpdateData && (
         <button className="btn-accent header-btn" onClick={onUpdateData}>
-          Update Data
+          <span className="header-btn-label">Update Data</span>
+          <span className="header-btn-icon">↑</span>
         </button>
       )}
       {isAdmin && onAdmin && (
         <button className="btn-outline btn-outline--light header-btn" onClick={onAdmin}>
-          Admin
+          <span className="header-btn-label">Admin</span>
+          <span className="header-btn-icon">⚙</span>
         </button>
       )}
       {onSignOut && (
         <button className="btn-outline btn-outline--light header-btn" onClick={onSignOut}>
-          Sign Out
+          <span className="header-btn-label">Sign Out</span>
+          <span className="header-btn-icon">⏏</span>
         </button>
       )}
     </div>
