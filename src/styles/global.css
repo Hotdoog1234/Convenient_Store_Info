@@ -246,6 +246,13 @@ body {
 .search-panel {
   padding: 20px 24px;
   margin-bottom: 18px;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.search-panel form {
+  width: 100%;
 }
 
 .search-row {
@@ -253,6 +260,7 @@ body {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .search-row .form-select { max-width: 220px; }
@@ -640,7 +648,7 @@ body {
   .header-actions { gap: 6px; flex-shrink: 0; }
 
   /* Layout */
-  .main-content { padding: 12px 10px; }
+  .main-content { padding: 12px 8px; }
 
   /* Status bar */
   .status-bar { padding: 8px 12px; }
@@ -657,9 +665,24 @@ body {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
+    width: 100%;
   }
-  .search-row .form-select { max-width: 100%; }
-  .search-row .form-input  { min-width: 0; }
+  .search-row .form-select {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .search-row .form-input {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .search-row .btn-primary,
+  .search-row .btn-locate {
+    width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+  }
 
   /* Facility card */
   .facility-card-header { padding: 12px 14px; }
