@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@emailjs/browser": "^4.4.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
@@ -40,6 +43,7 @@
     ]
   },
   "devDependencies": {
-    "firebase-admin": "^13.9.0"
+    "firebase-admin": "^13.9.0",
+    "sharp": "^0.34.5"
   }
 }
