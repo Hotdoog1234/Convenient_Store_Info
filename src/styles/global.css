@@ -61,6 +61,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -277,7 +278,6 @@ body {
 /* ── Facility card ── */
 .facility-card {
   animation: fadeUp 0.25s ease both;
-  overflow: hidden;
   max-width: 100%;
 }
 
@@ -361,7 +361,7 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
-  padding: 0 0 20px;
+  padding: 0 12px 20px;
 }
 
 .tank-table {
@@ -651,7 +651,7 @@ body {
   .header-actions { gap: 6px; flex-shrink: 0; }
 
   /* Layout */
-  .main-content { padding: 12px 8px; }
+  .main-content { padding: 8px; }
 
   /* Status bar */
   .status-bar { padding: 8px 12px; }
@@ -707,7 +707,7 @@ body {
 
   /* Tank table — scroll within the card */
   .tank-table-wrap {
-    padding: 0 0 14px;
+    padding: 0 8px 14px;
   }
   .tank-table {
     font-size: 12px;
@@ -729,7 +729,7 @@ body {
   .results-count { font-size: 12px; }
 
   /* Cards general */
-  .card { margin-bottom: 12px; }
+  .card { margin: 0 0 12px 0; }
 
   /* Owner modal */
   .modal-box { padding: 20px 16px; }
