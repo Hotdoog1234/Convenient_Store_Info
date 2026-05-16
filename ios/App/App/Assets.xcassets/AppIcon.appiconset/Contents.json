@@ -39,11 +39,11 @@
     {
       "filename": "AppIcon-40.png",
       "idiom": "iphone",
-      "scale": "2x",
+      "scale": "1x",
       "size": "40x40"
     },
     {
-      "filename": "AppIcon-80.png",
+      "filename": "AppIcon-80-40pt.png",
       "idiom": "iphone",
       "scale": "2x",
       "size": "40x40"
