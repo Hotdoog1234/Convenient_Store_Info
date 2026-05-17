@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, indexedDBLocalPersistence, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
 
 export const firebaseConfig = {
   apiKey:            process.env.REACT_APP_FIREBASE_API_KEY,
@@ -13,9 +14,13 @@ export const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-export const db   = getFirestore(app);
+// On native Capacitor (iOS/Android), use initializeAuth with
+// indexedDBLocalPersistence so Firebase doesn't stall waiting for
+// the browser persistence layer to initialise inside WKWebView.
+// On web, fall back to the standard getAuth() which handles persistence
+// selection automatically.
+export const auth = Capacitor.isNativePlatform()
+  ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
+  : getAuth(app);
 
-// Note: browserLocalPersistence is Firebase's default — no need to call
-// setPersistence() explicitly. Doing so at module load blocks auth operations
-// in Capacitor's WKWebView until IndexedDB is ready, causing sign-in to hang.
+export const db = getFirestore(app);
