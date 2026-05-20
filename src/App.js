@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './styles/global.css';
 
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -139,6 +139,23 @@ const App = () => {
 
   const handleSignOut = () => { setShowAdmin(false); setWasCancelled(false); signOut(auth); };
 
+  const handleDeleteAccount = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    try {
+      await deleteUser(currentUser);
+    } catch (err) {
+      if (err.code === 'auth/requires-recent-login') {
+        alert('For security, please sign out and sign back in before deleting your account.');
+        signOut(auth);
+        return;
+      }
+      console.error('Failed to delete account:', err);
+    }
+    setShowAdmin(false);
+    setWasCancelled(false);
+  };
+
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
   if (showSplash) return <SplashScreen />;
@@ -174,7 +191,7 @@ const App = () => {
   if (isInitializing) {
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
           {loadError ? <ErrorMessage message={loadError} /> : <LoadingSpinner />}
         </div>
@@ -187,7 +204,7 @@ const App = () => {
   if (loadError) {
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
           <ErrorMessage message={loadError} />
         </div>
@@ -201,7 +218,7 @@ const App = () => {
     if (!isAdmin) {
       return (
         <div className="app-layout">
-          <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+          <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
           <div className="upload-fullpage">
             <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 15 }}>
               <p style={{ marginBottom: 8 }}>Data has not been loaded yet.</p>
@@ -214,7 +231,7 @@ const App = () => {
     }
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
         <div className="upload-fullpage">
           <DataUpload
             onTankLoaded={handleTankLoaded}
@@ -232,6 +249,7 @@ const App = () => {
       <Header
         onUpdateData={isAdmin ? () => setShowUpload(true) : undefined}
         onSignOut={handleSignOut}
+        onDeleteAccount={handleDeleteAccount}
         isAdmin={isAdmin}
         onAdmin={() => setShowAdmin(true)}
       />

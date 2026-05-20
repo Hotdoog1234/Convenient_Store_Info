@@ -5,7 +5,7 @@ import { TANK_STATUS_LABELS } from '../utils/tankStatusLabels';
 
 const TANK_FIELDS = [
   'SUBJECT_ITEM_ID',
-  'COMPARTMENT_NUMBER',
+  'COMPARTMENT_NUM',
   'TANK_SUBSTANCE_CODE',
   'CAPACITY_MSR',
   'TANK_STATUS_CODE',
@@ -92,9 +92,9 @@ const FacilityCard = ({ facility, tanks, findOwner, distanceMiles }) => {
   return (
     <div className="card facility-card">
       <div className="facility-card-header">
-        <div className="facility-id">AI ID: {facility.AI_ID}</div>
+        <div className="facility-id-label">AI ID: {facility.AI_ID}</div>
         <div className="facility-name">{facility.AI_NAME || 'Unknown Facility'}</div>
-        <div className="facility-address">
+        <div className="facility-name-secondary">
           {[
             facility.ADDRESS_1,
             facility.MAILING_ADDRESS_MUNICIPALITY,
