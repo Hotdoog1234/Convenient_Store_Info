@@ -8,7 +8,6 @@ const SplashScreen = ({ fading }) => (
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
     zIndex: 9998,
     overflow: 'hidden',
     opacity: fading ? 0 : 1,
@@ -18,8 +17,8 @@ const SplashScreen = ({ fading }) => (
     boxSizing: 'border-box',
   }}>
 
-    {/* Shield logo — fixed height so it never grows */}
-    <div style={{ flexShrink: 0, padding: '20px 20px 6px', textAlign: 'center' }}>
+    {/* Shield logo */}
+    <div style={{ flexShrink: 0, padding: '16px 20px 0', textAlign: 'center' }}>
       <img
         src="./shield-logo.jpg"
         alt="Shield Environmental Associates"
@@ -27,12 +26,12 @@ const SplashScreen = ({ fading }) => (
       />
     </div>
 
-    {/* SVG scene — fills available space but never overflows */}
-    <div style={{ flex: '1 1 0', width: '100%', minHeight: 0, maxHeight: 320 }}>
+    {/* SVG scene — natural height from aspect ratio, no cap */}
+    <div style={{ flexShrink: 0, width: '100%' }}>
       <svg
-        viewBox="0 0 360 220"
+        viewBox="0 0 360 300"
         width="100%"
-        height="100%"
+        height="auto"
         preserveAspectRatio="xMidYMid meet"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -139,7 +138,7 @@ const SplashScreen = ({ fading }) => (
         ))}
 
         {/* ── UNDERGROUND FILL ───────────────────────────── */}
-        <rect x="0" y="122" width="360" height="98" fill="#2c1a0a"/>
+        <rect x="0" y="122" width="360" height="178" fill="#2c1a0a"/>
 
         {/* Soil pebbles / texture */}
         {[18,48,75,108,158,196,238,268,308,342].map((x, i) => (
@@ -148,6 +147,13 @@ const SplashScreen = ({ fading }) => (
         <ellipse cx="38"  cy="146" rx="6"   ry="3.5" fill="#3d2a12" opacity="0.6"/>
         <ellipse cx="320" cy="140" rx="5.5" ry="3"   fill="#3d2a12" opacity="0.55"/>
         <ellipse cx="180" cy="210" rx="7"   ry="3.5" fill="#3d2a12" opacity="0.5"/>
+        {/* Extra soil depth texture */}
+        {[30,80,130,180,230,280,330].map((x,i) => (
+          <circle key={`dp${i}`} cx={x} cy={220+(i%3)*18} r="1.5" fill="#5d3d1e" opacity="0.4"/>
+        ))}
+        <ellipse cx="70"  cy="250" rx="8" ry="4" fill="#3d2a12" opacity="0.45"/>
+        <ellipse cx="290" cy="260" rx="7" ry="3.5" fill="#3d2a12" opacity="0.4"/>
+        <ellipse cx="170" cy="275" rx="6" ry="3"   fill="#3d2a12" opacity="0.35"/>
 
         {/* ══ TANK 1 — horizontal fiberglass cylinder ════ */}
         {/*   Body: rounded rect representing cylinder side view   */}
@@ -246,10 +252,11 @@ const SplashScreen = ({ fading }) => (
       </svg>
     </div>
 
-    {/* Bottom info — always visible, fixed height */}
+    {/* Bottom info — pushed to bottom via marginTop auto */}
     <div style={{
       flexShrink: 0,
-      padding: '10px 24px 18px',
+      marginTop: 'auto',
+      padding: '12px 24px 20px',
       textAlign: 'center',
       width: '100%',
       boxSizing: 'border-box',
