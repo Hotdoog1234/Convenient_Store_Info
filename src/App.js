@@ -13,6 +13,7 @@ import DataUpload   from './components/DataUpload';
 import EmptyState   from './components/EmptyState';
 import LoginScreen  from './components/LoginScreen';
 import AdminPanel   from './components/AdminPanel';
+import SplashScreen from './components/SplashScreen';
 
 const ADMIN_EMAIL = 'robert_francis@shieldmw.com';
 
@@ -59,6 +60,8 @@ const App = () => {
   const [showUpload,   setShowUpload]   = useState(false);
   const [showAdmin,    setShowAdmin]    = useState(false);
   const [wasCancelled, setWasCancelled] = useState(false);
+  const [showSplash,   setShowSplash]   = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
 
   const {
     isInitializing, isLoaded,
@@ -151,168 +154,183 @@ const App = () => {
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
 
-  // Show login screen immediately — no spinner while waiting for Firebase Auth.
-  // authReady gates data fetching; the login screen handles the not-yet-resolved state.
-  if (!user) return (
-    <LoginScreen cancelledMessage={wasCancelled
-      ? 'Your account has been cancelled. Please contact the administrator.'
-      : null}
-    />
-  );
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setSplashFading(true), 3400);
+    const hideTimer = setTimeout(() => setShowSplash(false), 4000);
+    return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
+  }, []);
 
-  const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
-  const handleLocateMe = (lat, lng)              => setResults(findNearest(lat, lng, 5));
-
-  const handleTankLoaded = async (rows) => {
-    await saveTankData(rows);
-    setResults(null);
-  };
-
-  const handleOwnerLoaded = async (rows) => {
-    await saveOwnerData(rows);
-  };
-
-  const footer = (
-    <footer className="app-footer">
-      Shield Environmental Associates, Inc. {new Date().getFullYear()}
-    </footer>
-  );
-
-  // ── Fetching from Firestore ───────────────────────────────────────────────
-  if (isInitializing) {
-    return (
-      <div className="app-layout">
-        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
-        <div className="upload-fullpage">
-          {loadError ? <ErrorMessage message={loadError} /> : <LoadingSpinner />}
-        </div>
-        {footer}
-      </div>
+  const renderContent = () => {
+    // Show login screen immediately — no spinner while waiting for Firebase Auth.
+    // authReady gates data fetching; the login screen handles the not-yet-resolved state.
+    if (!user) return (
+      <LoginScreen cancelledMessage={wasCancelled
+        ? 'Your account has been cancelled. Please contact the administrator.'
+        : null}
+      />
     );
-  }
 
-  // ── Firebase error after init ─────────────────────────────────────────────
-  if (loadError) {
-    return (
-      <div className="app-layout">
-        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
-        <div className="upload-fullpage">
-          <ErrorMessage message={loadError} />
-        </div>
-        {footer}
-      </div>
+    const handleSearch   = (category, term, term2) => setResults(search(category, term, term2));
+    const handleLocateMe = (lat, lng)              => setResults(findNearest(lat, lng, 5));
+
+    const handleTankLoaded = async (rows) => {
+      await saveTankData(rows);
+      setResults(null);
+    };
+
+    const handleOwnerLoaded = async (rows) => {
+      await saveOwnerData(rows);
+    };
+
+    const footer = (
+      <footer className="app-footer">
+        Shield Environmental Associates, Inc. {new Date().getFullYear()}
+      </footer>
     );
-  }
 
-  // ── No data in Firestore ──────────────────────────────────────────────────
-  if (!isLoaded) {
-    if (!isAdmin) {
+    // ── Fetching from Firestore ─────────────────────────────────────────────
+    if (isInitializing) {
       return (
         <div className="app-layout">
           <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
           <div className="upload-fullpage">
-            <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 15 }}>
-              <p style={{ marginBottom: 8 }}>Data has not been loaded yet.</p>
-              <p style={{ margin: 0 }}>Please contact the administrator.</p>
-            </div>
+            {loadError ? <ErrorMessage message={loadError} /> : <LoadingSpinner />}
           </div>
           {footer}
         </div>
       );
     }
+
+    // ── Firebase error after init ───────────────────────────────────────────
+    if (loadError) {
+      return (
+        <div className="app-layout">
+          <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+          <div className="upload-fullpage">
+            <ErrorMessage message={loadError} />
+          </div>
+          {footer}
+        </div>
+      );
+    }
+
+    // ── No data in Firestore ────────────────────────────────────────────────
+    if (!isLoaded) {
+      if (!isAdmin) {
+        return (
+          <div className="app-layout">
+            <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+            <div className="upload-fullpage">
+              <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 15 }}>
+                <p style={{ marginBottom: 8 }}>Data has not been loaded yet.</p>
+                <p style={{ margin: 0 }}>Please contact the administrator.</p>
+              </div>
+            </div>
+            {footer}
+          </div>
+        );
+      }
+      return (
+        <div className="app-layout">
+          <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
+          <div className="upload-fullpage">
+            <DataUpload
+              onTankLoaded={handleTankLoaded}
+              onOwnerLoaded={handleOwnerLoaded}
+            />
+          </div>
+          {footer}
+        </div>
+      );
+    }
+
+    // ── Main app ────────────────────────────────────────────────────────────
     return (
       <div className="app-layout">
-        <Header onSignOut={handleSignOut} onDeleteAccount={handleDeleteAccount} isAdmin={isAdmin} onAdmin={() => setShowAdmin(true)} />
-        <div className="upload-fullpage">
-          <DataUpload
-            onTankLoaded={handleTankLoaded}
-            onOwnerLoaded={handleOwnerLoaded}
+        <Header
+          onUpdateData={isAdmin ? () => setShowUpload(true) : undefined}
+          onSignOut={handleSignOut}
+          onDeleteAccount={handleDeleteAccount}
+          isAdmin={isAdmin}
+          onAdmin={() => setShowAdmin(true)}
+        />
+
+        {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+
+        {showUpload && (
+          <div className="upload-overlay">
+            <DataUpload
+              onTankLoaded={handleTankLoaded}
+              onOwnerLoaded={handleOwnerLoaded}
+              onCancel={() => setShowUpload(false)}
+              requirePasscode
+            />
+          </div>
+        )}
+
+        <main className="main-content">
+          <div className="status-bar">
+            <span className="status-bar-text">
+              <span className="status-dataset">
+                <strong>Tank data:</strong>{' '}
+                {tankUploadedAt
+                  ? <>{formatDate(tankUploadedAt)} · {tankCount.toLocaleString()} records</>
+                  : <em>not uploaded</em>}
+              </span>
+              <span className="status-divider" aria-hidden="true">|</span>
+              <span className="status-dataset">
+                <strong>Owner data:</strong>{' '}
+                {ownerUploadedAt
+                  ? <>{formatDate(ownerUploadedAt)} · {ownerCount.toLocaleString()} records</>
+                  : <em>not uploaded</em>}
+              </span>
+            </span>
+          </div>
+
+          <SearchBar
+            onSearch={handleSearch}
+            onLocateMe={handleLocateMe}
+            getUniqueValues={getUniqueValues}
           />
-        </div>
+
+          {results === null ? (
+            <EmptyState />
+          ) : results.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-state-icon">😶</span>
+              <h3 className="empty-state-title">No facilities found</h3>
+              <p className="empty-state-text">Try a different search term or category.</p>
+            </div>
+          ) : (
+            <>
+              <p className="results-count">
+                {results[0]?.distanceMiles != null
+                  ? `${results.length} nearest ${results.length === 1 ? 'facility' : 'facilities'} to your location`
+                  : `${results.length} ${results.length === 1 ? 'facility' : 'facilities'} found`}
+              </p>
+              {results.map(({ facility, tanks, distanceMiles }) => (
+                <FacilityCard
+                  key={facility.AI_ID}
+                  facility={facility}
+                  tanks={tanks}
+                  findOwner={findOwner}
+                  distanceMiles={distanceMiles ?? null}
+                />
+              ))}
+            </>
+          )}
+        </main>
+
         {footer}
       </div>
     );
-  }
+  };
 
-  // ── Main app ──────────────────────────────────────────────────────────────
   return (
-    <div className="app-layout">
-      <Header
-        onUpdateData={isAdmin ? () => setShowUpload(true) : undefined}
-        onSignOut={handleSignOut}
-        onDeleteAccount={handleDeleteAccount}
-        isAdmin={isAdmin}
-        onAdmin={() => setShowAdmin(true)}
-      />
-
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
-
-      {showUpload && (
-        <div className="upload-overlay">
-          <DataUpload
-            onTankLoaded={handleTankLoaded}
-            onOwnerLoaded={handleOwnerLoaded}
-            onCancel={() => setShowUpload(false)}
-            requirePasscode
-          />
-        </div>
-      )}
-
-      <main className="main-content">
-        <div className="status-bar">
-          <span className="status-bar-text">
-            <span className="status-dataset">
-              <strong>Tank data:</strong>{' '}
-              {tankUploadedAt
-                ? <>{formatDate(tankUploadedAt)} · {tankCount.toLocaleString()} records</>
-                : <em>not uploaded</em>}
-            </span>
-            <span className="status-divider" aria-hidden="true">|</span>
-            <span className="status-dataset">
-              <strong>Owner data:</strong>{' '}
-              {ownerUploadedAt
-                ? <>{formatDate(ownerUploadedAt)} · {ownerCount.toLocaleString()} records</>
-                : <em>not uploaded</em>}
-            </span>
-          </span>
-        </div>
-
-        <SearchBar
-          onSearch={handleSearch}
-          onLocateMe={handleLocateMe}
-          getUniqueValues={getUniqueValues}
-        />
-
-        {results === null ? (
-          <EmptyState />
-        ) : results.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-state-icon">😶</span>
-            <h3 className="empty-state-title">No facilities found</h3>
-            <p className="empty-state-text">Try a different search term or category.</p>
-          </div>
-        ) : (
-          <>
-            <p className="results-count">
-              {results[0]?.distanceMiles != null
-                ? `${results.length} nearest ${results.length === 1 ? 'facility' : 'facilities'} to your location`
-                : `${results.length} ${results.length === 1 ? 'facility' : 'facilities'} found`}
-            </p>
-            {results.map(({ facility, tanks, distanceMiles }) => (
-              <FacilityCard
-                key={facility.AI_ID}
-                facility={facility}
-                tanks={tanks}
-                findOwner={findOwner}
-                distanceMiles={distanceMiles ?? null}
-              />
-            ))}
-          </>
-        )}
-      </main>
-
-      {footer}
-    </div>
+    <>
+      {showSplash && <SplashScreen fading={splashFading} />}
+      {renderContent()}
+    </>
   );
 };
 
