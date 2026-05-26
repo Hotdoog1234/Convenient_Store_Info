@@ -8,208 +8,284 @@ const SplashScreen = ({ fading }) => (
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'space-between',
     zIndex: 9998,
     overflow: 'hidden',
     opacity: fading ? 0 : 1,
     transition: 'opacity 0.6s ease-out',
     paddingTop: 'env(safe-area-inset-top)',
+    paddingBottom: 'env(safe-area-inset-bottom)',
     boxSizing: 'border-box',
   }}>
 
-    {/* Shield logo */}
-    <div style={{ flexShrink: 0, padding: '28px 20px 8px', textAlign: 'center' }}>
+    {/* Shield logo — fixed height so it never grows */}
+    <div style={{ flexShrink: 0, padding: '20px 20px 6px', textAlign: 'center' }}>
       <img
         src="./shield-logo.jpg"
         alt="Shield Environmental Associates"
-        style={{ width: 195, maxWidth: '52vw', borderRadius: 8 }}
+        style={{ width: 170, maxWidth: '45vw', borderRadius: 8 }}
       />
     </div>
 
-    {/* Animated UST scene */}
-    <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
+    {/* SVG scene — fills available space but never overflows */}
+    <div style={{ flex: '1 1 0', width: '100%', minHeight: 0, maxHeight: 320 }}>
       <svg
-        viewBox="0 0 360 240"
+        viewBox="0 0 360 220"
         width="100%"
         height="100%"
         preserveAspectRatio="xMidYMid meet"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <clipPath id="splashHPipe">
-            <rect x="147" y="158" width="66" height="5"/>
+          {/* Clip liquid to the horizontal pipe interior */}
+          <clipPath id="hPipeClip">
+            <rect x="148" y="153" width="64" height="6"/>
           </clipPath>
-          <clipPath id="splashVPipe">
-            <rect x="173" y="128" width="5" height="30"/>
+          {/* Clip drips to the vertical pipe */}
+          <clipPath id="vPipeClip">
+            <rect x="173" y="120" width="6" height="34"/>
+          </clipPath>
+          {/* Tank 1 body clip for shading strips */}
+          <clipPath id="tank1Clip">
+            <rect x="22" y="148" width="116" height="46"/>
+          </clipPath>
+          {/* Tank 2 body clip */}
+          <clipPath id="tank2Clip">
+            <rect x="222" y="148" width="116" height="46"/>
           </clipPath>
         </defs>
 
-        {/* ── ABOVE GROUND ───────────────────────────────── */}
-        <rect x="0" y="0" width="360" height="120" fill="#1a4a2e"/>
+        {/* ── SKY / ABOVE GROUND ─────────────────────────── */}
+        <rect x="0" y="0" width="360" height="112" fill="#1a4a2e"/>
 
         {/* Pump canopy */}
-        <rect x="126" y="48" width="102" height="6" rx="2" fill="#96281b"/>
-        <rect x="144" y="48" width="6" height="10" fill="#922b21"/>
-        <rect x="206" y="48" width="6" height="10" fill="#922b21"/>
+        <rect x="124" y="44" width="106" height="7" rx="2" fill="#7b241c"/>
+        <rect x="142" y="44" width="7" height="12" fill="#7b241c"/>
+        <rect x="205" y="44" width="7" height="12" fill="#7b241c"/>
+        <rect x="122" y="50" width="110" height="4" rx="1" fill="#922b21"/>
 
         {/* Pump body */}
-        <rect x="148" y="56" width="58" height="64" rx="5" fill="#c0392b"/>
-        <rect x="154" y="63" width="46" height="33" rx="3" fill="#d5dbdb"/>
-        <rect x="157" y="66" width="40" height="27" rx="2" fill="#0a2e1a"/>
-        <text x="177" y="77" textAnchor="middle" fill="#4ade80" fontSize="6.5" fontFamily="monospace">UNLEADED</text>
-        <text x="177" y="87" textAnchor="middle" fill="#4ade80" fontSize="9" fontFamily="monospace" fontWeight="bold">$3.45</text>
-        <rect x="148" y="96" width="58" height="7" fill="#e74c3c"/>
+        <rect x="148" y="53" width="58" height="62" rx="5" fill="#c0392b"/>
+        {/* Screen bezel */}
+        <rect x="153" y="60" width="48" height="34" rx="3" fill="#ccd1d1"/>
+        {/* Screen */}
+        <rect x="156" y="63" width="42" height="28" rx="2" fill="#071a0e"/>
+        <text x="177" y="74" textAnchor="middle" fill="#4ade80" fontSize="6" fontFamily="monospace">UNLEADED</text>
+        <text x="177" y="84" textAnchor="middle" fill="#4ade80" fontSize="9" fontFamily="monospace" fontWeight="bold">$3.45</text>
+        {/* Pump brand stripe */}
+        <rect x="148" y="94" width="58" height="8" fill="#e74c3c"/>
+        {/* Pump base */}
+        <rect x="148" y="112" width="58" height="5" rx="1" fill="#7b241c"/>
 
-        {/* Nozzle + hose */}
-        <path d="M 206 80 Q 222 80 222 96 L 222 108" stroke="#7f8c8d" strokeWidth="4" fill="none" strokeLinecap="round"/>
-        <rect x="219" y="106" width="7" height="14" rx="3" fill="#5d6d7e"/>
-        <path d="M 206 100 Q 215 100 215 108" stroke="#5d6d7e" strokeWidth="2.5" fill="none"/>
+        {/* Nozzle arm */}
+        <path d="M 206 77 Q 224 77 224 93 L 224 106" stroke="#808b96" strokeWidth="4" fill="none" strokeLinecap="round"/>
+        <rect x="221" y="104" width="7" height="13" rx="3" fill="#566573"/>
 
-        {/* Pump base plate */}
-        <rect x="148" y="118" width="58" height="4" rx="1" fill="#96281b"/>
+        {/* Vertical fill pipe stub above ground */}
+        <rect x="173" y="115" width="7" height="8" fill="#5d4037"/>
 
-        {/* Vertical fill pipe above-ground stub */}
-        <rect x="173" y="118" width="7" height="12" fill="#4e342e"/>
+        {/* Left vent pipe */}
+        <rect x="60" y="82" width="5" height="30" fill="#78909c"/>
+        <rect x="57" y="81" width="11" height="5" rx="1" fill="#607d8b"/>
 
-        {/* Left monitoring vent */}
-        <rect x="64" y="88" width="5" height="32" fill="#78909c"/>
-        <rect x="61" y="87" width="11" height="4" rx="1" fill="#78909c"/>
+        {/* Right vent pipe */}
+        <rect x="293" y="77" width="5" height="35" fill="#78909c"/>
+        <rect x="290" y="76" width="11" height="5" rx="1" fill="#607d8b"/>
 
-        {/* Right monitoring vent */}
-        <rect x="291" y="83" width="5" height="37" fill="#78909c"/>
-        <rect x="288" y="82" width="11" height="4" rx="1" fill="#78909c"/>
-
-        {/* Vapor rings – left vent (two staggered) */}
-        <circle cx="66" cy="85" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
-          <animate attributeName="r" values="2;9" dur="2.4s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.7;0" dur="2.4s" repeatCount="indefinite"/>
-          <animate attributeName="cy" values="85;68" dur="2.4s" repeatCount="indefinite"/>
+        {/* Vapor – left vent, 2 staggered rings */}
+        <circle cx="62" cy="79" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
+          <animate attributeName="r"   values="2;10"    dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.7;0" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="cy"  values="79;60"   dur="2.5s" repeatCount="indefinite"/>
         </circle>
-        <circle cx="66" cy="85" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
-          <animate attributeName="r" values="2;9" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.7;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
-          <animate attributeName="cy" values="85;68" dur="2.4s" begin="1.2s" repeatCount="indefinite"/>
+        <circle cx="62" cy="79" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
+          <animate attributeName="r"   values="2;10"    dur="2.5s" begin="1.25s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.7;0" dur="2.5s" begin="1.25s" repeatCount="indefinite"/>
+          <animate attributeName="cy"  values="79;60"   dur="2.5s" begin="1.25s" repeatCount="indefinite"/>
         </circle>
 
-        {/* Vapor rings – right vent */}
-        <circle cx="293" cy="80" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
-          <animate attributeName="r" values="2;9" dur="3s" repeatCount="indefinite"/>
+        {/* Vapor – right vent */}
+        <circle cx="295" cy="74" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
+          <animate attributeName="r"   values="2;10"    dur="3s" repeatCount="indefinite"/>
           <animate attributeName="opacity" values="0.7;0" dur="3s" repeatCount="indefinite"/>
-          <animate attributeName="cy" values="80;63" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="cy"  values="74;55"   dur="3s" repeatCount="indefinite"/>
         </circle>
-        <circle cx="293" cy="80" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
-          <animate attributeName="r" values="2;9" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+        <circle cx="295" cy="74" r="2" fill="none" stroke="#a5d6a7" strokeWidth="1.2">
+          <animate attributeName="r"   values="2;10"    dur="3s" begin="1.5s" repeatCount="indefinite"/>
           <animate attributeName="opacity" values="0.7;0" dur="3s" begin="1.5s" repeatCount="indefinite"/>
-          <animate attributeName="cy" values="80;63" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+          <animate attributeName="cy"  values="74;55"   dur="3s" begin="1.5s" repeatCount="indefinite"/>
         </circle>
 
         {/* ── GROUND SURFACE ─────────────────────────────── */}
-        <rect x="135" y="118" width="84" height="10" fill="#546e7a" opacity="0.35"/>
-        <rect x="0" y="118" width="360" height="6" fill="#33691e"/>
-        <rect x="0" y="121" width="360" height="7" fill="#1b5e20"/>
+        {/* Concrete pad under pump */}
+        <rect x="134" y="112" width="86" height="10" fill="#5d6d7e" opacity="0.3"/>
+        {/* Topsoil band */}
+        <rect x="0" y="112" width="360" height="6" fill="#2e7d32"/>
+        <rect x="0" y="116" width="360" height="6" fill="#1b5e20"/>
 
         {/* Grass – left of pump */}
-        {[16, 32, 50, 68, 88, 106, 122, 133].map((x, i) => (
+        {[14, 30, 46, 64, 82, 100, 118, 130].map((x, i) => (
           <g key={`gl${i}`}>
-            <line x1={x} y1="120" x2={x - 4} y2={107 + (i % 3) * 3} stroke="#4caf50" strokeWidth="1.8" strokeLinecap="round"/>
-            <line x1={x + 5} y1="120" x2={x + 3} y2={104 + (i % 2) * 4} stroke="#388e3c" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1={x}   y1="114" x2={x - 4} y2={101 + (i % 3) * 3} stroke="#4caf50" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1={x+5} y1="114" x2={x + 2} y2={98  + (i % 2) * 4} stroke="#388e3c" strokeWidth="1.8" strokeLinecap="round"/>
           </g>
         ))}
         {/* Grass – right of pump */}
-        {[224, 242, 260, 278, 296, 314, 332, 348].map((x, i) => (
+        {[222, 240, 258, 275, 292, 310, 328, 346].map((x, i) => (
           <g key={`gr${i}`}>
-            <line x1={x} y1="120" x2={x - 4} y2={107 + (i % 3) * 3} stroke="#4caf50" strokeWidth="1.8" strokeLinecap="round"/>
-            <line x1={x + 5} y1="120" x2={x + 3} y2={104 + (i % 2) * 4} stroke="#388e3c" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1={x}   y1="114" x2={x - 4} y2={101 + (i % 3) * 3} stroke="#4caf50" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1={x+5} y1="114" x2={x + 2} y2={98  + (i % 2) * 4} stroke="#388e3c" strokeWidth="1.8" strokeLinecap="round"/>
           </g>
         ))}
 
-        {/* ── UNDERGROUND ────────────────────────────────── */}
-        <rect x="0" y="128" width="360" height="112" fill="#2c1a0a"/>
+        {/* ── UNDERGROUND FILL ───────────────────────────── */}
+        <rect x="0" y="122" width="360" height="98" fill="#2c1a0a"/>
 
-        {/* Soil texture */}
-        {[22, 52, 78, 112, 162, 200, 242, 272, 312, 345].map((x, i) => (
-          <circle key={`st${i}`} cx={x} cy={140 + (i % 4) * 12} r="1.8" fill="#5d3d1e" opacity="0.55"/>
+        {/* Soil pebbles / texture */}
+        {[18,48,75,108,158,196,238,268,308,342].map((x, i) => (
+          <circle key={`p${i}`} cx={x} cy={132 + (i % 4) * 11} r="1.6" fill="#5d3d1e" opacity="0.5"/>
         ))}
-        <ellipse cx="40" cy="150" rx="7" ry="4" fill="#3d2a12" opacity="0.65"/>
-        <ellipse cx="318" cy="145" rx="6" ry="3.5" fill="#3d2a12" opacity="0.6"/>
-        <ellipse cx="185" cy="215" rx="8" ry="4" fill="#3d2a12" opacity="0.55"/>
+        <ellipse cx="38"  cy="146" rx="6"   ry="3.5" fill="#3d2a12" opacity="0.6"/>
+        <ellipse cx="320" cy="140" rx="5.5" ry="3"   fill="#3d2a12" opacity="0.55"/>
+        <ellipse cx="180" cy="210" rx="7"   ry="3.5" fill="#3d2a12" opacity="0.5"/>
 
-        {/* ── TANK 1 ─────────────────────────────────────── */}
-        <ellipse cx="87" cy="184" rx="63" ry="30" fill="#1a0d04" opacity="0.45"/>
-        <ellipse cx="85" cy="180" rx="63" ry="29" fill="#4e342e"/>
-        <ellipse cx="85" cy="169" rx="57" ry="19" fill="#5d4037"/>
-        <path d="M 36 173 Q 85 166 134 173" stroke="#8d6e63" strokeWidth="1.5" fill="none" opacity="0.4"/>
-        <text x="85" y="181" textAnchor="middle" fill="#d7ccc8" fontSize="7.5" fontFamily="DM Sans,sans-serif" fontWeight="600">TANK 1</text>
-        <text x="85" y="191" textAnchor="middle" fill="#bcaaa4" fontSize="6" fontFamily="DM Sans,sans-serif">10,000 GAL</text>
-        <ellipse cx="85" cy="153" rx="11" ry="5.5" fill="#3e2723" stroke="#6d4c41" strokeWidth="1.5"/>
-        <ellipse cx="85" cy="152" rx="7" ry="3.5" fill="#4a3728"/>
+        {/* ══ TANK 1 — horizontal fiberglass cylinder ════ */}
+        {/*   Body: rounded rect representing cylinder side view   */}
+        {/*   x=22..138, cy=171, height=46 → top=148, bot=194    */}
 
-        {/* ── TANK 2 ─────────────────────────────────────── */}
-        <ellipse cx="277" cy="184" rx="63" ry="30" fill="#1a0d04" opacity="0.45"/>
-        <ellipse cx="275" cy="180" rx="63" ry="29" fill="#4e342e"/>
-        <ellipse cx="275" cy="169" rx="57" ry="19" fill="#5d4037"/>
-        <path d="M 226 173 Q 275 166 324 173" stroke="#8d6e63" strokeWidth="1.5" fill="none" opacity="0.4"/>
-        <text x="275" y="181" textAnchor="middle" fill="#d7ccc8" fontSize="7.5" fontFamily="DM Sans,sans-serif" fontWeight="600">TANK 2</text>
-        <text x="275" y="191" textAnchor="middle" fill="#bcaaa4" fontSize="6" fontFamily="DM Sans,sans-serif">8,000 GAL</text>
-        <ellipse cx="275" cy="153" rx="11" ry="5.5" fill="#3e2723" stroke="#6d4c41" strokeWidth="1.5"/>
-        <ellipse cx="275" cy="152" rx="7" ry="3.5" fill="#4a3728"/>
+        {/* Drop shadow */}
+        <rect x="26" y="152" width="116" height="46" rx="22" fill="#0d0704" opacity="0.5"/>
+
+        {/* Main cylinder body – dark grey fiberglass */}
+        <rect x="22" y="148" width="116" height="46" rx="22" fill="#455a64"/>
+
+        {/* Metallic highlight band across top */}
+        <rect x="22" y="148" width="116" height="12" rx="22" fill="#607d8b" clipPath="url(#tank1Clip)"/>
+        {/* Subtle mid shine */}
+        <rect x="30" y="152" width="100" height="5" rx="2" fill="#78909c" opacity="0.5"/>
+        {/* Lower shadow band */}
+        <rect x="22" y="182" width="116" height="12" rx="0" fill="#263238" clipPath="url(#tank1Clip)"/>
+
+        {/* End caps – left ellipse */}
+        <ellipse cx="22"  cy="171" rx="10" ry="23" fill="#546e7a"/>
+        <ellipse cx="22"  cy="171" rx="6"  ry="17" fill="#607d8b" opacity="0.6"/>
+        {/* End caps – right ellipse */}
+        <ellipse cx="138" cy="171" rx="10" ry="23" fill="#37474f"/>
+        <ellipse cx="138" cy="171" rx="6"  ry="17" fill="#455a64" opacity="0.5"/>
+
+        {/* UST label stripe */}
+        <rect x="50" y="162" width="68" height="18" rx="2" fill="#1a237e" opacity="0.85" clipPath="url(#tank1Clip)"/>
+        <text x="84" y="172" textAnchor="middle" fill="#ffffff" fontSize="6.5" fontFamily="monospace" fontWeight="bold">TANK 1</text>
+        <text x="84" y="179" textAnchor="middle" fill="#c5cae9" fontSize="5.5" fontFamily="monospace">10,000 GAL</text>
+
+        {/* Fiberglass wrap lines */}
+        <line x1="40"  y1="148" x2="40"  y2="194" stroke="#546e7a" strokeWidth="0.8" opacity="0.4"/>
+        <line x1="128" y1="148" x2="128" y2="194" stroke="#546e7a" strokeWidth="0.8" opacity="0.4"/>
+
+        {/* Manhole / access riser on top */}
+        <rect x="74" y="134" width="20" height="16" rx="3" fill="#455a64"/>
+        <rect x="72" y="132" width="24" height="5"  rx="2" fill="#546e7a"/>
+        <rect x="74" y="134" width="20" height="3"  rx="1" fill="#607d8b" opacity="0.6"/>
+
+        {/* ══ TANK 2 — horizontal fiberglass cylinder ════ */}
+        <rect x="226" y="152" width="116" height="46" rx="22" fill="#0d0704" opacity="0.5"/>
+        <rect x="222" y="148" width="116" height="46" rx="22" fill="#455a64"/>
+        <rect x="222" y="148" width="116" height="12" rx="22" fill="#607d8b" clipPath="url(#tank2Clip)"/>
+        <rect x="230" y="152" width="100" height="5"  rx="2" fill="#78909c" opacity="0.5"/>
+        <rect x="222" y="182" width="116" height="12" rx="0" fill="#263238" clipPath="url(#tank2Clip)"/>
+
+        <ellipse cx="222" cy="171" rx="10" ry="23" fill="#546e7a"/>
+        <ellipse cx="222" cy="171" rx="6"  ry="17" fill="#607d8b" opacity="0.6"/>
+        <ellipse cx="338" cy="171" rx="10" ry="23" fill="#37474f"/>
+        <ellipse cx="338" cy="171" rx="6"  ry="17" fill="#455a64" opacity="0.5"/>
+
+        <rect x="250" y="162" width="68" height="18" rx="2" fill="#1a237e" opacity="0.85" clipPath="url(#tank2Clip)"/>
+        <text x="284" y="172" textAnchor="middle" fill="#ffffff" fontSize="6.5" fontFamily="monospace" fontWeight="bold">TANK 2</text>
+        <text x="284" y="179" textAnchor="middle" fill="#c5cae9" fontSize="5.5" fontFamily="monospace">8,000 GAL</text>
+
+        <line x1="240" y1="148" x2="240" y2="194" stroke="#546e7a" strokeWidth="0.8" opacity="0.4"/>
+        <line x1="328" y1="148" x2="328" y2="194" stroke="#546e7a" strokeWidth="0.8" opacity="0.4"/>
+
+        <rect x="274" y="134" width="20" height="16" rx="3" fill="#455a64"/>
+        <rect x="272" y="132" width="24" height="5"  rx="2" fill="#546e7a"/>
+        <rect x="274" y="134" width="20" height="3"  rx="1" fill="#607d8b" opacity="0.6"/>
 
         {/* ── PIPES ──────────────────────────────────────── */}
-        {/* Horizontal product pipe */}
-        <rect x="147" y="155" width="66" height="9" rx="2.5" fill="#3e2723"/>
-        <rect x="147" y="156" width="66" height="3" fill="#6d4c41" opacity="0.4"/>
+        {/* Horizontal product pipe between tanks */}
+        <rect x="138" y="150" width="84" height="9" rx="3" fill="#3e2723"/>
+        <rect x="138" y="151" width="84" height="3" fill="#6d4c41" opacity="0.45"/>
 
         {/* Vertical fill pipe underground */}
-        <rect x="173" y="128" width="7" height="29" fill="#3e2723"/>
-        <rect x="174" y="128" width="2.5" height="29" fill="#6d4c41" opacity="0.35"/>
+        <rect x="173" y="122" width="7" height="30" fill="#3e2723"/>
+        <rect x="174" y="122" width="2.5" height="30" fill="#6d4c41" opacity="0.35"/>
 
-        {/* Vent pipe underground stubs */}
-        <rect x="64" y="128" width="5" height="22" fill="#546e7a" opacity="0.6"/>
-        <rect x="291" y="128" width="5" height="22" fill="#546e7a" opacity="0.6"/>
+        {/* Vent underground stubs */}
+        <rect x="60"  y="122" width="5" height="20" fill="#546e7a" opacity="0.55"/>
+        <rect x="293" y="122" width="5" height="20" fill="#546e7a" opacity="0.55"/>
 
         {/* ── ANIMATED LIQUID ────────────────────────────── */}
-        {/* Horizontal flow – first blob */}
-        <rect x="127" y="159" width="24" height="4" fill="#f59e0b" clipPath="url(#splashHPipe)">
-          <animate attributeName="x" from="127" to="215" dur="1.9s" repeatCount="indefinite"/>
+        {/* Horizontal flow – blob 1 */}
+        <rect x="118" y="153" width="26" height="5" fill="#f59e0b" clipPath="url(#hPipeClip)">
+          <animate attributeName="x" from="118" to="215" dur="2s" repeatCount="indefinite"/>
         </rect>
-        {/* Horizontal flow – second blob (offset) */}
-        <rect x="105" y="159" width="18" height="4" fill="#d97706" clipPath="url(#splashHPipe)" opacity="0.75">
-          <animate attributeName="x" from="105" to="215" dur="1.9s" begin="0.65s" repeatCount="indefinite"/>
+        {/* Horizontal flow – blob 2 (offset) */}
+        <rect x="96" y="153" width="20" height="5" fill="#d97706" clipPath="url(#hPipeClip)" opacity="0.75">
+          <animate attributeName="x" from="96" to="215" dur="2s" begin="0.7s" repeatCount="indefinite"/>
         </rect>
 
-        {/* Vertical drip – first drop */}
-        <circle cx="176" cy="130" r="3" fill="#f59e0b" clipPath="url(#splashVPipe)">
-          <animate attributeName="cy" values="130;156" dur="1.1s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="1;0.2" dur="1.1s" repeatCount="indefinite"/>
+        {/* Vertical drip – drop 1 */}
+        <circle cx="176" cy="124" r="3" fill="#f59e0b" clipPath="url(#vPipeClip)">
+          <animate attributeName="cy" values="124;152" dur="1.1s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0.2"  dur="1.1s" repeatCount="indefinite"/>
         </circle>
-        {/* Vertical drip – second drop */}
-        <circle cx="176" cy="130" r="2.5" fill="#fbbf24" clipPath="url(#splashVPipe)" opacity="0.85">
-          <animate attributeName="cy" values="130;156" dur="1.1s" begin="0.55s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.85;0.1" dur="1.1s" begin="0.55s" repeatCount="indefinite"/>
+        {/* Vertical drip – drop 2 (offset) */}
+        <circle cx="176" cy="124" r="2.5" fill="#fbbf24" clipPath="url(#vPipeClip)" opacity="0.8">
+          <animate attributeName="cy" values="124;152" dur="1.1s" begin="0.55s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.8;0.1" dur="1.1s" begin="0.55s" repeatCount="indefinite"/>
         </circle>
       </svg>
     </div>
 
-    {/* Bottom info */}
+    {/* Bottom info — always visible, fixed height */}
     <div style={{
       flexShrink: 0,
-      padding: '8px 20px calc(28px + env(safe-area-inset-bottom))',
+      padding: '10px 24px 18px',
       textAlign: 'center',
+      width: '100%',
+      boxSizing: 'border-box',
     }}>
       <p style={{
-        color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: '0 0 10px',
-        fontFamily: 'DM Sans, sans-serif', fontStyle: 'italic',
+        color: 'rgba(255,255,255,0.72)',
+        fontSize: 13,
+        margin: '0 0 8px',
+        fontFamily: 'DM Sans, sans-serif',
+        fontStyle: 'italic',
+        letterSpacing: 0.2,
       }}>
         For all your environmental needs
       </p>
       <a href="tel:8592945155" style={{
-        display: 'block', color: '#6ee7b7', fontSize: 16, fontWeight: 600,
-        textDecoration: 'none', marginBottom: 6, fontFamily: 'DM Sans, sans-serif',
+        display: 'block',
+        color: '#6ee7b7',
+        fontSize: 17,
+        fontWeight: 600,
+        textDecoration: 'none',
+        marginBottom: 5,
+        fontFamily: 'DM Sans, sans-serif',
       }}>
         859-294-5155
       </a>
-      <a href="https://www.shieldenv.com" target="_blank" rel="noopener noreferrer" style={{
-        color: '#6ee7b7', fontSize: 13, textDecoration: 'none', fontFamily: 'DM Sans, sans-serif',
-      }}>
+      <a
+        href="https://www.shieldenv.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: '#6ee7b7',
+          fontSize: 13,
+          textDecoration: 'none',
+          fontFamily: 'DM Sans, sans-serif',
+        }}
+      >
         www.shieldenv.com
       </a>
     </div>
