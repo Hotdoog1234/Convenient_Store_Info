@@ -4,7 +4,7 @@ const SplashScreen = ({ fading }) => (
   <div style={{
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: '#1a4a2e',
+    background: '#ffffff',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -56,7 +56,7 @@ const SplashScreen = ({ fading }) => (
         </defs>
 
         {/* ── SKY / ABOVE GROUND ─────────────────────────── */}
-        <rect x="0" y="0" width="360" height="112" fill="#1a4a2e"/>
+        <rect x="0" y="0" width="360" height="112" fill="#ffffff"/>
 
         {/* Pump canopy */}
         <rect x="124" y="44" width="106" height="7" rx="2" fill="#7b241c"/>
@@ -255,7 +255,7 @@ const SplashScreen = ({ fading }) => (
       boxSizing: 'border-box',
     }}>
       <p style={{
-        color: 'rgba(255,255,255,0.72)',
+        color: '#1a4a2e',
         fontSize: 13,
         margin: '0 0 8px',
         fontFamily: 'DM Sans, sans-serif',
@@ -266,7 +266,7 @@ const SplashScreen = ({ fading }) => (
       </p>
       <a href="tel:8592945155" style={{
         display: 'block',
-        color: '#6ee7b7',
+        color: '#1a4a2e',
         fontSize: 17,
         fontWeight: 600,
         textDecoration: 'none',
@@ -280,7 +280,7 @@ const SplashScreen = ({ fading }) => (
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          color: '#6ee7b7',
+          color: '#1a4a2e',
           fontSize: 13,
           textDecoration: 'none',
           fontFamily: 'DM Sans, sans-serif',
