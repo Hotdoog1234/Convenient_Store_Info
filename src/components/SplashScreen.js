@@ -27,7 +27,7 @@ const SplashScreen = ({ fading }) => (
     </div>
 
     {/* SVG scene — grows to fill space between logo and footer */}
-    <div style={{ flex: '1 1 0', width: '100%', minHeight: 0, maxHeight: '60vh' }}>
+    <div style={{ flex: '1 1 0', width: '100%', minHeight: 0, maxHeight: '65vh' }}>
       <svg
         viewBox="0 0 360 300"
         width="100%"
