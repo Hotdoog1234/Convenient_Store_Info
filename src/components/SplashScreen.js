@@ -26,8 +26,8 @@ const SplashScreen = ({ fading }) => (
       />
     </div>
 
-    {/* SVG scene — natural height from aspect ratio, no cap */}
-    <div style={{ flexShrink: 0, width: '100%' }}>
+    {/* SVG scene — maxWidth caps height on iPad (360×300 ratio) without clipping */}
+    <div style={{ flexShrink: 0, width: '100%', maxWidth: 480 }}>
       <svg
         viewBox="0 0 360 300"
         width="100%"
