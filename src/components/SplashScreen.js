@@ -26,12 +26,12 @@ const SplashScreen = ({ fading }) => (
       />
     </div>
 
-    {/* SVG scene — maxWidth caps height on iPad (360×300 ratio) without clipping */}
-    <div style={{ flexShrink: 0, width: '100%', maxWidth: 480 }}>
+    {/* SVG scene — grows to fill space between logo and footer */}
+    <div style={{ flex: '1 1 0', width: '100%', minHeight: 0, maxHeight: '60vh' }}>
       <svg
         viewBox="0 0 360 300"
         width="100%"
-        height="auto"
+        height="100%"
         preserveAspectRatio="xMidYMid meet"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -255,7 +255,6 @@ const SplashScreen = ({ fading }) => (
     {/* Bottom info — pushed to bottom via marginTop auto */}
     <div style={{
       flexShrink: 0,
-      marginTop: 'auto',
       padding: '12px 24px 20px',
       textAlign: 'center',
       width: '100%',
