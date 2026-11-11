@@ -168,8 +168,8 @@ body {
   border: 1px solid #fed7aa;
   border-radius: var(--radius-badge);
   padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .btn-accent {
@@ -325,7 +325,7 @@ input, select, textarea { font-size: 16px; }
 
 .facility-name {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 4px;
 }
@@ -337,7 +337,7 @@ input, select, textarea { font-size: 16px; }
   margin-bottom: 8px;
 }
 
-.facility-id-label { font-size: 0.75rem; color: #888; font-weight: 400; margin-bottom: 2px; }
+.facility-id-label { font-size: 17px; color: var(--color-text); font-weight: 700; margin-bottom: 2px; }
 
 .facility-address {
   font-size: 14px;
@@ -345,7 +345,7 @@ input, select, textarea { font-size: 16px; }
   margin-bottom: 10px;
 }
 
-.facility-name-secondary { font-size: 0.875rem; color: #555; font-weight: 400; margin-top: 2px; }
+.facility-name-secondary { font-size: 17px; color: var(--color-text); font-weight: 700; margin-top: 2px; }
 
 .facility-meta {
   display: flex;
@@ -698,7 +698,7 @@ input, select, textarea { font-size: 16px; }
 
   /* Facility card */
   .facility-card-header { padding: 12px 14px; }
-  .facility-name   { font-size: 15px; }
+  .facility-id-label, .facility-name, .facility-name-secondary { font-size: 15px; }
   .facility-meta   { gap: 6px; }
 
   /* Facility summary — stack vertically */

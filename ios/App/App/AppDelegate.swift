@@ -4,16 +4,7 @@ import Capacitor
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    var window: UIWindow?
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        if let vc = self.window?.rootViewController as? CAPBridgeViewController {
-            _ = vc.view // force viewDidLoad so webView is initialized
-            vc.webView?.backgroundColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
-            vc.webView?.scrollView.backgroundColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
-            vc.webView?.isOpaque = false
-        }
         return true
     }
 

@@ -249,7 +249,6 @@ const LoginScreen = ({ cancelledMessage = null }) => {
                 required
                 autoComplete="email"
                 maxLength={254}
-                autoFocus
               />
             </div>
             <div className="login-field">
@@ -300,7 +299,6 @@ const LoginScreen = ({ cancelledMessage = null }) => {
                 required
                 autoComplete="email"
                 maxLength={254}
-                autoFocus
               />
             </div>
             {error   && <p className="login-error">{error}</p>}
@@ -338,7 +336,6 @@ const LoginScreen = ({ cancelledMessage = null }) => {
                 onChange={(e) => setName(e.target.value)}
                 required
                 maxLength={120}
-                autoFocus
               />
             </div>
             <div className="login-field">
