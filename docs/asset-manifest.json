@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/Convenient_Store_Info/static/css/main.a79244e1.css",
-    "main.js": "/Convenient_Store_Info/static/js/main.c6158a33.js",
+    "main.css": "/Convenient_Store_Info/static/css/main.a721ae99.css",
+    "main.js": "/Convenient_Store_Info/static/js/main.fcb00eac.js",
     "static/js/453.3f9c4b4e.chunk.js": "/Convenient_Store_Info/static/js/453.3f9c4b4e.chunk.js",
     "index.html": "/Convenient_Store_Info/index.html",
-    "main.a79244e1.css.map": "/Convenient_Store_Info/static/css/main.a79244e1.css.map",
-    "main.c6158a33.js.map": "/Convenient_Store_Info/static/js/main.c6158a33.js.map",
+    "main.a721ae99.css.map": "/Convenient_Store_Info/static/css/main.a721ae99.css.map",
+    "main.fcb00eac.js.map": "/Convenient_Store_Info/static/js/main.fcb00eac.js.map",
     "453.3f9c4b4e.chunk.js.map": "/Convenient_Store_Info/static/js/453.3f9c4b4e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a79244e1.css",
-    "static/js/main.c6158a33.js"
+    "static/css/main.a721ae99.css",
+    "static/js/main.fcb00eac.js"
   ]
 }
